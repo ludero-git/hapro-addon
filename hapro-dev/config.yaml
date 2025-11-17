@@ -1,7 +1,7 @@
 name: "hapro (Development)"
 description: "Development version, don't use except when instructed to do so. Professional manager for multiple HA installations."
 slug: "hapro-dev"
-version: "v1.0"
+version: "v1.0.1"
 image: ghcr.io/bitfox-git/hapro-dev-addon-{arch}
 url: "https://github.com/bitfox-git/hapro-addon/tree/main/hapro-dev"
 init: false
