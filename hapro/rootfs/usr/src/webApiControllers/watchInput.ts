@@ -6,7 +6,10 @@ async function watchNotifications() {
     const data = JSON.parse(event.data);
     if (data.type === "auth_required")
       socket.send(
-        JSON.stringify({ type: "auth", access_token: Bun.env.SUPERVISOR_TOKEN })
+        JSON.stringify({
+          type: "auth",
+          access_token: Bun.env.SUPERVISOR_TOKEN,
+        }),
       );
 
     if (data.type === "auth_ok")
@@ -15,7 +18,7 @@ async function watchNotifications() {
           id: 1,
           type: "subscribe_events",
           event_type: "hapro_notification",
-        })
+        }),
       );
 
     if (data.type === "result") {
@@ -41,7 +44,7 @@ async function handleNotification(notification) {
   const uuidEntry = await Bun.file("/homeassistant/.storage/core.uuid").text();
   const uuid = JSON.parse(uuidEntry).data.uuid;
   const response = await fetch(
-    `https://api.hapro.cloud/api/notification/${uuid}`,
+    `https://api.ludero.nl/api/notification/${uuid}`,
     {
       method: "POST",
       headers: {
@@ -49,7 +52,7 @@ async function handleNotification(notification) {
         Authorization: `Bearer ${token.access_token}`,
       },
       body: JSON.stringify(notification),
-    }
+    },
   );
   const data = await response.text();
 }
@@ -63,7 +66,7 @@ async function fetchToken() {
   }
 
   const key = clientToml.client.transport.noise.remote_public_key;
-  const response = await fetch("https://api.hapro.cloud/connect/token", {
+  const response = await fetch("https://api.ludero.nl/connect/token", {
     method: "POST",
     headers: {
       "Content-Type": "application/x-www-form-urlencoded",

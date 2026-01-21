@@ -2,7 +2,7 @@ blueprint:
   name: HaPro Notification Blueprint - v1.1
   description: Get notified by the hapro system on selected triggers
   domain: automation
-  author: Melchior - Bitfox
+  author: Melchior - Ludero
   input:
     cooldown:
       name: Cooldown
@@ -21,17 +21,17 @@ blueprint:
         trigger:
     title:
       name: Title
-      description: The Title for the notification, fe. Low Power Production. The prefix SUBDOMAIN will be replaced by the subdomain of your homeassistant 
+      description: The Title for the notification, fe. Low Power Production. The prefix SUBDOMAIN will be replaced by the subdomain of your homeassistant
       selector:
         text:
-         prefix: "SUBDOMAIN"
-         type: text
+          prefix: "SUBDOMAIN"
+          type: text
     description:
       name: Description
       description: "A more detailed description of the notification, fe. Your current power production has dropped below the configured threshold of: 100W"
       selector:
         text:
-         type: text
+          type: text
     urgency:
       name: Urgency
       description: "The urgency of the notification"

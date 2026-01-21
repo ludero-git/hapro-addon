@@ -1,9 +1,9 @@
 name: "hapro"
 description: "Professional manager for multiple HA installations."
 slug: "hapro"
-version: "v1.0.1"
-image: ghcr.io/bitfox-git/hapro-addon-{arch}
-url: "https://github.com/bitfox-git/hapro-addon/tree/main/hapro"
+version: "v1.1"
+image: ghcr.io/ludero-git/hapro-addon-{arch}
+url: "https://github.com/ludero-git/hapro-addon/tree/main/hapro"
 init: false
 host_network: true
 homeassistant_api: true

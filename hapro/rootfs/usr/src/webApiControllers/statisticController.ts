@@ -111,6 +111,7 @@ async function enableSystemMonitor() {
     pref_disable_new_entities: false,
     pref_disable_polling: false,
     source: "user",
+    subentries: [],
     title: "System Monitor",
     unique_id: null,
     version: 1,

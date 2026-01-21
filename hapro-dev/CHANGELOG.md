@@ -1,8 +1,21 @@
 <!-- https://developers.home-assistant.io/docs/add-ons/presentation#keeping-a-changelog -->
 
+## v1.1 21/01/2026
+### Ownership Transfer
+- The ownership of the HaPro addon has been transferred to Ludero
+
+### Fixes
+- Fixed an issue where homeassistant would get corrupted on enabling systemmonitor statistics
+
+
 ## v1.0 17/01/2025
 # File Distribution
 - Added the system for file distribution
+
+## v1.0-alpha13.2 - 09/01/2025
+### Fixed
+- Fixed blueprint
+- Fixed restarting on OOM and reattaching to notifications on ha reboot
 
 ## v1.0-alpha13.1 - 08/01/2025
 ### Fixed

@@ -25,19 +25,23 @@ async function getBackupList(): Promise<any[]> {
 
 async function checkBackupCompletion(fileName: string): Promise<boolean> {
   const backupList = await getBackupList();
-  const isBackupComplete = backupList.some(backup => backup.slug === fileName.replace(".tar", ""));
+  const isBackupComplete = backupList.some(
+    (backup) => backup.slug === fileName.replace(".tar", ""),
+  );
   return isBackupComplete;
 }
 
 async function notifyBackupComplete() {
   try {
-    const uuidEntry = await Bun.file("/homeassistant/.storage/core.uuid").text();
+    const uuidEntry = await Bun.file(
+      "/homeassistant/.storage/core.uuid",
+    ).text();
     const uuid = JSON.parse(uuidEntry).data.uuid;
-    await fetch(`https://api.test.hapro.cloud/api/backup/${uuid}/synchronize`, {
+    await fetch(`https://api.test.ludero.nl/api/backup/${uuid}/synchronize`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-      }
+      },
     });
     console.debug("Backup completion notification sent.");
   } catch (error) {
@@ -57,20 +61,24 @@ export async function watchBackupDirectory() {
     const files = await getFiles(BACKUP_DIR);
     const currentFileCount = files.length;
     if (currentFileCount !== lastFileCount) {
-      console.debug(`File count changed from ${lastFileCount} to ${currentFileCount}`);
+      console.debug(
+        `File count changed from ${lastFileCount} to ${currentFileCount}`,
+      );
       lastFileCount = currentFileCount;
-      const newFiles = files.filter(file => !previousFiles.has(file));
+      const newFiles = files.filter((file) => !previousFiles.has(file));
       const newFile = newFiles[0];
       if (newFile) {
         console.debug(`New file detected: ${newFile}`);
-        if(newFile.endsWith(".tar")) {
+        if (newFile.endsWith(".tar")) {
           const retryInterval = setInterval(async () => {
             const isBackupComplete = await checkBackupCompletion(newFile);
             if (isBackupComplete) {
               await notifyBackupComplete();
               clearInterval(retryInterval);
             } else {
-              console.debug(`Backup for ${newFile} is not yet listed, retrying...`);
+              console.debug(
+                `Backup for ${newFile} is not yet listed, retrying...`,
+              );
             }
           }, 10000);
         }

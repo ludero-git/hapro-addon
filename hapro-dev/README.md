@@ -13,10 +13,12 @@
 <!-- ![Supports armv7 Architecture][armv7-shield] -->
 <!-- ![Supports i386 Architecture][i386-shield] -->
 
+![HaPRO Logo](./logo.png)
+
 HaPRO extends the capabilities of your Home Assistant installation by providing an easy-to-use interface for creating public URLs, managing cloud backups, and handling multiple homes seamlessly.
 
 ## Quick Installation
-[![Install the addon on your Home Assistant.](https://my.home-assistant.io/badges/supervisor_add_addon_repository.svg)](https://my.home-assistant.io/redirect/supervisor_add_addon_repository/?repository_url=https%3A%2F%2Fgithub.com%2Fbitfox-git%2Fhapro-addon)
+[![Install the addon on your Home Assistant.](https://my.home-assistant.io/badges/supervisor_add_addon_repository.svg)](https://my.home-assistant.io/redirect/supervisor_add_addon_repository/?repository_url=https%3A%2F%2Fgithub.com%2Fludero-git%2Fhapro-addon)
 
 ## Features
 
@@ -43,12 +45,12 @@ HaPRO extends the capabilities of your Home Assistant installation by providing 
 - An active internet connection for setting up public URLs.
 
 ### Quick Installation
-[![Install the addon on your Home Assistant.](https://my.home-assistant.io/badges/supervisor_add_addon_repository.svg)](https://my.home-assistant.io/redirect/supervisor_add_addon_repository/?repository_url=https%3A%2F%2Fgithub.com%2Fbitfox-git%2Fhapro-addon)
+[![Install the addon on your Home Assistant.](https://my.home-assistant.io/badges/supervisor_add_addon_repository.svg)](https://my.home-assistant.io/redirect/supervisor_add_addon_repository/?repository_url=https%3A%2F%2Fgithub.com%2Fludero-git%2Fhapro-addon)
 
 ### Manual Installation
 
 1. From the Home Assistant Add-On Store, navigate to the overflow menu in the top right corner and select "Repositories."
-2. Add the following URL: [https://github.com/bitfox-git/hapro-addon](https://github.com/bitfox-git/hapro-addon)
+2. Add the following URL: [https://github.com/ludero-git/hapro-addon](https://github.com/ludero-git/hapro-addon)
 3. Refresh the Add-On Store, and you should see the HaPro Repository with the HaPro add-on.
 4. Click on the HaPro add-on, then click "Install."
 

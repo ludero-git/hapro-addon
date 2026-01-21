@@ -1,1 +1,1 @@
-HaproApi=https://api.test.hapro.cloud
+HaproApi=https://api.test.ludero.nl

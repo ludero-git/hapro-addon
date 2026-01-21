@@ -6,13 +6,13 @@ async function getStatisticHistory(statistic) {
       JSON.stringify({
         StatusCode: 400,
         Message: "System Monitor Integration is disabled",
-      })
+      }),
     );
   const statistics = await helpers.getSMStatistics();
 
   if (!statistics.hasOwnProperty(statistic))
     return new Response(
-      JSON.stringify({ StatusCode: 400, Message: "Invalid Statistic" })
+      JSON.stringify({ StatusCode: 400, Message: "Invalid Statistic" }),
     );
 
   const getAllEnabledStatistics = await helpers.doHaInternalApiRequest(
@@ -26,21 +26,21 @@ async function getStatisticHistory(statistic) {
   {% endif %}
 {% endfor %}
 {{ enabled_entities.entities }}`,
-    }
+    },
   );
   const enabledStatistics = JSON.parse(
-    getAllEnabledStatistics.replace(/'/g, '"')
+    getAllEnabledStatistics.replace(/'/g, '"'),
   );
   if (!enabledStatistics.includes(statistics[statistic]))
     return new Response(
-      JSON.stringify({ StatusCode: 400, Message: "Statistic is not enabled" })
+      JSON.stringify({ StatusCode: 400, Message: "Statistic is not enabled" }),
     );
   var entityId = statistics[statistic];
   const currentDateTimeMinusOneHour = new Date(
-    new Date().getTime() - 3600 * 1000
+    new Date().getTime() - 3600 * 1000,
   );
   const response = await helpers.doHaInternalApiRequest(
-    `/history/period/${currentDateTimeMinusOneHour.toISOString()}?filter_entity_id=${entityId}&minimal_response&no_attributes&significant_changes_only`
+    `/history/period/${currentDateTimeMinusOneHour.toISOString()}?filter_entity_id=${entityId}&minimal_response&no_attributes&significant_changes_only`,
   );
   return new Response(JSON.stringify({ StatusCode: 200, data: response }));
 }
@@ -50,7 +50,7 @@ async function enableSystemMonitor() {
   const configEntriesText = await configEntries.text();
   const configEntriesContent = JSON.parse(configEntriesText);
   const systemMonitorEntry = configEntriesContent.data.entries.find(
-    (entry) => entry.domain === "systemmonitor"
+    (entry) => entry.domain === "systemmonitor",
   );
   if (systemMonitorEntry && systemMonitorEntry.disabled_by === null) {
     console.debug("System Monitor is already enabled");
@@ -58,14 +58,14 @@ async function enableSystemMonitor() {
       JSON.stringify({
         StatusCode: 400,
         Message: "System Monitor is already enabled",
-      })
+      }),
     );
   }
   if (systemMonitorEntry) {
     systemMonitorEntry.disabled_by = null;
     await Bun.write(
       "/homeassistant/.storage/core.config_entries",
-      JSON.stringify(configEntriesContent, null, 2)
+      JSON.stringify(configEntriesContent, null, 2),
     );
     console.info("System Monitor is now enabled");
     await helpers.doHaInternalApiRequest("/events/hapro_notification", "POST", {
@@ -90,7 +90,7 @@ async function enableSystemMonitor() {
       JSON.stringify({
         StatusCode: 200,
         Message: "System Monitor is now enabled, Home Assistant is restarting",
-      })
+      }),
     );
   }
   const dateTime = new Date().toISOString();
@@ -111,6 +111,7 @@ async function enableSystemMonitor() {
     pref_disable_new_entities: false,
     pref_disable_polling: false,
     source: "user",
+    subentries: [],
     title: "System Monitor",
     unique_id: null,
     version: 1,
@@ -118,16 +119,16 @@ async function enableSystemMonitor() {
   configEntriesContent.data.entries.push(systemMonitorConfig);
   await Bun.write(
     "/homeassistant/.storage/core.config_entries",
-    JSON.stringify(configEntriesContent, null, 2)
+    JSON.stringify(configEntriesContent, null, 2),
   );
   console.info("System Monitor is now installed");
   const configEntries2 = Bun.file(
-    "/homeassistant/.storage/core.config_entries"
+    "/homeassistant/.storage/core.config_entries",
   );
   const configEntriesText2 = await configEntries2.text();
   const configEntriesContent2 = JSON.parse(configEntriesText2);
   const systemMonitorEntry2 = configEntriesContent2.data.entries.find(
-    (entry) => entry.domain === "systemmonitor"
+    (entry) => entry.domain === "systemmonitor",
   );
 
   await helpers.doHaInternalApiRequest("/events/hapro_notification", "POST", {
@@ -154,7 +155,7 @@ async function enableSystemMonitor() {
     JSON.stringify({
       StatusCode: 200,
       Message: "System Monitor is now installed, Home Assistant is restarting",
-    })
+    }),
   );
 }
 
@@ -166,11 +167,11 @@ async function enableSystemMonitorEntities() {
       JSON.stringify({
         StatusCode: 400,
         Message: "System Monitor is disabled, cannot enable entities",
-      })
+      }),
     );
   }
   const entityEntries = Bun.file(
-    "/homeassistant/.storage/core.entity_registry"
+    "/homeassistant/.storage/core.entity_registry",
   );
   const entityEntriesText = await entityEntries.text();
   const entityEntriesContent = JSON.parse(entityEntriesText);
@@ -178,7 +179,7 @@ async function enableSystemMonitorEntities() {
   for (const key in statistics) {
     if (statistics[key] !== null) {
       const entity = entityEntriesContent.data.entities.find(
-        (entry) => entry.entity_id === statistics[key]
+        (entry) => entry.entity_id === statistics[key],
       );
       if (entity) {
         entity.disabled_by = null;
@@ -188,7 +189,7 @@ async function enableSystemMonitorEntities() {
   }
   await Bun.write(
     "/homeassistant/.storage/core.entity_registry",
-    JSON.stringify(entityEntriesContent, null, 2)
+    JSON.stringify(entityEntriesContent, null, 2),
   );
   console.info("Enabled System Monitor entities");
 
@@ -211,8 +212,12 @@ async function enableSystemMonitorEntities() {
     JSON.stringify({
       StatusCode: 200,
       Message: "Enabled System Monitor entities, Home Assistant is restarting",
-    })
+    }),
   );
 }
 
-export {getStatisticHistory, enableSystemMonitor, enableSystemMonitorEntities};
+export {
+  getStatisticHistory,
+  enableSystemMonitor,
+  enableSystemMonitorEntities,
+};
