@@ -1,7 +1,7 @@
 name: "hapro"
 description: "Professional manager for multiple HA installations."
 slug: "hapro"
-version: "v1.1"
+version: "v1.2"
 image: ghcr.io/ludero-git/hapro-addon-{arch}
 url: "https://github.com/ludero-git/hapro-addon/tree/main/hapro"
 init: false
@@ -17,5 +17,9 @@ map:
   - backup:rw
 options:
   uuid: "Your UUID has not been identified yet, it will be fetched by the addon."
+  apiUrl: "https://api.ludero.nl"
+  debug: false
 schema:
   uuid: str?
+  apiUrl: str
+  debug: bool?

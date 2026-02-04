@@ -1,5 +1,13 @@
 <!-- https://developers.home-assistant.io/docs/add-ons/presentation#keeping-a-changelog -->
 
+## v1.2 04/02/2026
+### Added
+- Added option to enable debug logging for all services
+- Added option to change api endpoint
+
+### Fixed
+- Fixed an issue where caddy wasn't using the env vars as intended
+
 ## v1.1 21/01/2026
 ### Ownership Transfer
 - The ownership of the HaPro addon has been transferred to Ludero

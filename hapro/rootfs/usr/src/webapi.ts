@@ -8,10 +8,14 @@ import * as fileController from "./webApiControllers/fileController";
 import { watchNotifications } from "./webApiControllers/watchInput";
 
 const PORT = 3000;
+const DEBUG = Bun.env.DEBUG === "*" || Bun.env.BUN_DEBUG === "1";
 
-['log', 'info', 'warn', 'error', 'debug'].forEach((level) => {
+["log", "info", "warn", "error", "debug"].forEach((level) => {
   const original = console[level].bind(console);
-  console[level] = (...args) => original(`[${level.toUpperCase()}]`, ...args);
+  console[level] = (...args) => {
+    if (level === "debug" && !DEBUG) return;
+    original(`[${level.toUpperCase()}]`, ...args);
+  };
 });
 
 const PATHS = {
@@ -56,45 +60,65 @@ serve({
         case matchPath(PATHS.UPDATES, req):
           return await updateController.getUpdates();
         case matchPath(PATHS.UPDATES_ICON, req):
-          return await updateController.getIconOfUpdate(extractPathParams(PATHS.UPDATES_ICON, path)["updateId"]);
+          return await updateController.getIconOfUpdate(
+            extractPathParams(PATHS.UPDATES_ICON, path)["updateId"],
+          );
         case matchPath(PATHS.UPDATES_SKIP, req, "POST"):
-          return await updateController.skipUpdate(extractPathParams(PATHS.UPDATES_SKIP, path)["updateId"]);
+          return await updateController.skipUpdate(
+            extractPathParams(PATHS.UPDATES_SKIP, path)["updateId"],
+          );
         case matchPath(PATHS.UPDATES_CLEAR, req, "POST"):
-          return await updateController.clearSkippedUpdate(extractPathParams(PATHS.UPDATES_CLEAR, path)["updateId"]);
+          return await updateController.clearSkippedUpdate(
+            extractPathParams(PATHS.UPDATES_CLEAR, path)["updateId"],
+          );
         case matchPath(PATHS.UPDATES_PERFORM, req, "POST"):
-          return await updateController.performUpdate(extractPathParams(PATHS.UPDATES_PERFORM, path)["updateId"]);
+          return await updateController.performUpdate(
+            extractPathParams(PATHS.UPDATES_PERFORM, path)["updateId"],
+          );
         case matchPath(PATHS.SYSTEMMONITOR_ENABLE, req, "POST"):
           return await statisticController.enableSystemMonitor();
         case matchPath(PATHS.SYSTEMMONITOR_ENABLE_ENTITIES, req, "POST"):
           return await statisticController.enableSystemMonitorEntities();
         case matchPath(PATHS.STATISTIC_HISTORY, req):
-          return await statisticController.getStatisticHistory(extractPathParams(PATHS.STATISTIC_HISTORY, path)["entityId"]);
+          return await statisticController.getStatisticHistory(
+            extractPathParams(PATHS.STATISTIC_HISTORY, path)["entityId"],
+          );
         case matchPath(PATHS.BACKUPS, req):
           return await backupController.getBackups();
         case matchPath(PATHS.BACKUPS_INFO, req):
-          return await backupController.getBackupInfo(extractPathParams(PATHS.BACKUPS_INFO, path)["backupId"]);
+          return await backupController.getBackupInfo(
+            extractPathParams(PATHS.BACKUPS_INFO, path)["backupId"],
+          );
         case matchPath(PATHS.BACKUPS_DOWNLOAD, req):
-          return await backupController.downloadBackup(extractPathParams(PATHS.BACKUPS_DOWNLOAD, path)["backupId"]);
+          return await backupController.downloadBackup(
+            extractPathParams(PATHS.BACKUPS_DOWNLOAD, path)["backupId"],
+          );
         case matchPath(PATHS.BACKUPS_UPLOAD, req, "POST"):
           return await backupController.uploadBackup(req);
         case matchPath(PATHS.BACKUPS_DELETE, req, "DELETE"):
-          return await backupController.deleteBackup(extractPathParams(PATHS.BACKUPS_DELETE, path)["backupId"]);
+          return await backupController.deleteBackup(
+            extractPathParams(PATHS.BACKUPS_DELETE, path)["backupId"],
+          );
         case matchPath(PATHS.BACKUPS_RESTORE, req, "POST"):
-          return await backupController.restoreBackup(extractPathParams(PATHS.BACKUPS_RESTORE, path)["backupId"]);
+          return await backupController.restoreBackup(
+            extractPathParams(PATHS.BACKUPS_RESTORE, path)["backupId"],
+          );
         case matchPath(PATHS.BACKUPS_STATUS, req):
-          return await backupController.backupStatus(extractPathParams(PATHS.BACKUPS_STATUS, path)["backupId"]);
+          return await backupController.backupStatus(
+            extractPathParams(PATHS.BACKUPS_STATUS, path)["backupId"],
+          );
         case matchPath(PATHS.FILE_UPLOAD, req, "POST"):
           return await fileController.updateFile(req);
         default:
           return new Response(
-            JSON.stringify({ StatusCode: 404, Message: "Not Found" })
+            JSON.stringify({ StatusCode: 404, Message: "Not Found" }),
           );
       }
     } catch (error) {
       if (error instanceof Response) return error;
       console.error(error);
       return new Response(
-        JSON.stringify({ StatusCode: 500, Message: "Internal Server Error" })
+        JSON.stringify({ StatusCode: 500, Message: "Internal Server Error" }),
       );
     }
   },
@@ -103,11 +127,16 @@ serve({
 function matchPath(route: string, req: Request, method: string = "GET") {
   const routeParts = route.split("/");
   const pathParts = new URL(req.url).pathname.split("/");
-  if (routeParts.length !== pathParts.length || !routeParts.every((part, index) => part.match(/^:\w+Id$/) ? true : part === pathParts[index])) 
+  if (
+    routeParts.length !== pathParts.length ||
+    !routeParts.every((part, index) =>
+      part.match(/^:\w+Id$/) ? true : part === pathParts[index],
+    )
+  )
     return false;
-  if (method && req.method !== method) 
+  if (method && req.method !== method)
     throw new Response(
-      JSON.stringify({ StatusCode: 405, Message: "Method Not Allowed" })
+      JSON.stringify({ StatusCode: 405, Message: "Method Not Allowed" }),
     );
   return true;
 }
@@ -115,14 +144,13 @@ function matchPath(route: string, req: Request, method: string = "GET") {
 function extractPathParams(route: string, path: string) {
   const routeParts = route.split("/");
   const pathParts = path.split("/");
-    return routeParts.reduce((acc, part, index) => {
+  return routeParts.reduce((acc, part, index) => {
     if (part.match(/^:\w+Id$/)) {
       acc[part.slice(1)] = pathParts[index];
     }
     return acc;
   }, {});
 }
-
 
 console.debug(`Listening on http://localhost:${PORT} ...`);
 

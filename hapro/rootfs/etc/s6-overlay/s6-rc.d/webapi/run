@@ -1,6 +1,12 @@
 #!/usr/bin/with-contenv bashio
 bashio::log.info "WEBAPI: Starting Web API"
 
+if bashio::config.true 'debug'; then
+    export BUN_DEBUG=1
+    export DEBUG=*
+    bashio::log.info "WEBAPI: Debug mode enabled"
+fi
+
 bun run /usr/src/webapi.ts 2>&1 | while read -r line; do
     case "$line" in
         *"[DEBUG]"*) bashio::log.notice "WEBAPI: ${line#*] }" ;;

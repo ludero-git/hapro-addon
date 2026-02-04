@@ -6,9 +6,12 @@ if [ "$versionAvailable" == "true" ]; then
 fi
 bashio::log.info "SETUP-ADDON: Starting setup"
 
-# Load variables
-source /usr/src/config/vars.sh
+# Load request helper functions
 source /usr/src/request.sh
+
+# Get API URL from config
+HaproApi=$(bashio::config 'apiUrl')
+bashio::log.info "SETUP-ADDON: Using API URL: $HaproApi"
 
 bashio::log.notice "SETUP-ADDON: Setting HA configuration"
 mkdir -p /homeassistant/custom_components

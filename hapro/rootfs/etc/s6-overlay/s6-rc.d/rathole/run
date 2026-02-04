@@ -1,11 +1,14 @@
 #!/usr/bin/with-contenv bashio
-source /usr/src/config/vars.sh
 source /usr/src/request.sh
 
 sed -i "s/{{.PORT}}/80/g" /usr/bin/client.toml
 sed -i "s/{{.HOST}}/127.0.0.1/g" /usr/bin/client.toml
 
 bashio::log.info "RATHOLE: Starting rathole"
+if bashio::config.true 'debug'; then
+    export RUST_LOG=debug
+    bashio::log.notice "RATHOLE: Debug mode enabled"
+fi
 exec /usr/bin/rathole -c /usr/bin/client.toml  2>&1 | while read -r line; do
     case "$line" in
         *" DEBUG "*) bashio::log.notice "RATHOLE: ${line#* DEBUG }" ;;

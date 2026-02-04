@@ -27,7 +27,7 @@
     }
   },
   "mounts": [
-    "type=volume,target=/var/lib/docker",
-    "type=volume,target=/mnt/supervisor"
+    "type=volume,source=ha_docker_data,target=/var/lib/docker",
+    "type=volume,source=ha_supervisor_data,target=/mnt/supervisor"
   ]
 }

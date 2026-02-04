@@ -2,3 +2,9 @@ configuration:
   uuid:
     name: Your UUID
     description: You can use this UUID in your portal to identify this installation, changing it won't do anything.
+  apiUrl:
+    name: API URL
+    description: The URL of the API to connect to. Do not change this unless you know what you are doing.
+  debug:
+    name: Debug mode
+    description: Enable debug mode to see more detailed logs.

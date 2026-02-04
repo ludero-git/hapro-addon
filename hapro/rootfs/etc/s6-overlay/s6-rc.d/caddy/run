@@ -3,12 +3,25 @@ bashio::log.info "CADDY: Starting Caddy"
 
 source /usr/src/request.sh
 doSupervisorRequest "core/info"
-export HA_PORT=$(echo "$response" | jq -r .data.port) >> ./env.txt2
+export HA_PORT=$(echo "$response" | jq -r .data.port)
 
 subdomain=$(grep '\[client.services\.' /usr/bin/client.toml | sed -n 's/.*\[client\.services\.\(\"*\([^]"]*\)\"*\)\].*/\2/p')
-export HA_SUBDOMAIN=$subdomain >> ./env.txt2
+export HA_SUBDOMAIN=$subdomain
 
-caddy run --config /usr/src/Caddyfile --envfile ./env.txt2  2>&1 | while read -r line; do
+if bashio::config.true 'debug'; then
+    log_level="DEBUG"
+    bashio::log.info "CADDY: Debug mode enabled"
+else
+    log_level="WARN"
+fi
+sed -i "s/level WARN/level $log_level/g" /usr/src/Caddyfile
+
+if [ "$log_level" = "DEBUG" ]; then
+    bashio::log.notice "CADDY: Using Caddyfile: $(cat /usr/src/Caddyfile)"
+    bashio::log.notice "CADDY: Using environment variables: HA_PORT=$HA_PORT, HA_SUBDOMAIN=$HA_SUBDOMAIN"
+fi
+
+caddy run --config /usr/src/Caddyfile 2>&1 | while read -r line; do
     level=$(echo "$line" | jq -r '.level' 2>/dev/null)
     msg=$(echo "$line" | jq -r '.msg' 2>/dev/null)
     case "$level" in

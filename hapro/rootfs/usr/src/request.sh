@@ -1,5 +1,4 @@
 #!/usr/bin/with-contenv bashio
-source /usr/src/config/vars.sh
 
 doSupervisorRequest() {
     local url=$1
