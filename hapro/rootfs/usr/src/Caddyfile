@@ -5,10 +5,14 @@
   }
 }
 
-http://hapro-api, hapro-api {
-  reverse_proxy 0.0.0.0:3000
-}
+:{$CADDY_PORT} {
+  @hapro_api host hapro-api
+  handle @hapro_api {
+    reverse_proxy 0.0.0.0:3000
+  }
 
-http://{$HA_SUBDOMAIN}.ludero.nl, {$HA_SUBDOMAIN}.ludero.nl {
-  reverse_proxy 0.0.0.0:{$HA_PORT}
+  @ha_domain host {$HA_SUBDOMAIN}.ludero.nl
+  handle @ha_domain {
+    reverse_proxy 0.0.0.0:{$HA_PORT}
+  }
 }

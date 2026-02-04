@@ -55,6 +55,10 @@ HaPRO extends the capabilities of your Home Assistant installation by providing 
 - Continue the setup process, which includes giving your device a name and restarting the add-on.
 - You should now see your device in the HaPro dashboard.
 
+#### Advanced Configuration Options
+
+- **`caddy_port`** (default: `8099`): The port Caddy uses for reverse proxying. Change this if you have port conflicts with other add-ons like Tailscale. The rathole tunnel will automatically connect to this port.
+
 ## Contributing
 
 Contributions are what make the open-source community such an amazing place to learn, inspire, and create. Any contributions you make are **greatly appreciated**.

@@ -7,6 +7,7 @@ export HA_PORT=$(echo "$response" | jq -r .data.port)
 
 subdomain=$(grep '\[client.services\.' /usr/bin/client.toml | sed -n 's/.*\[client\.services\.\(\"*\([^]"]*\)\"*\)\].*/\2/p')
 export HA_SUBDOMAIN=$subdomain
+export CADDY_PORT=$(bashio::config 'caddy_port')
 
 if bashio::config.true 'debug'; then
     log_level="DEBUG"

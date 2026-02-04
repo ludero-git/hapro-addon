@@ -1,5 +1,12 @@
 <!-- https://developers.home-assistant.io/docs/add-ons/presentation#keeping-a-changelog -->
 
+## v1.2.2 04/02/2026
+### Added
+- Support for configurable Caddy port to resolve conflicts
+
+### Fixed
+- Revert support for non-AVX/AVX2 since that wasn't the issue, it's a tailscale conflict
+
 ## v1.2.1 04/02/2026
 ### Fixed
 - Support for older non-AVX/AVX2 CPU support (some celeron devices had caddy issues)

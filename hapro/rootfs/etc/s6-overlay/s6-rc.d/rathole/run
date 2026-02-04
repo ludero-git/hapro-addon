@@ -1,7 +1,8 @@
 #!/usr/bin/with-contenv bashio
 source /usr/src/request.sh
 
-sed -i "s/{{.PORT}}/80/g" /usr/bin/client.toml
+caddy_port=$(bashio::config 'caddy_port')
+sed -i "s/{{.PORT}}/$caddy_port/g" /usr/bin/client.toml
 sed -i "s/{{.HOST}}/127.0.0.1/g" /usr/bin/client.toml
 
 bashio::log.info "RATHOLE: Starting rathole"
