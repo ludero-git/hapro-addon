@@ -1,5 +1,9 @@
 <!-- https://developers.home-assistant.io/docs/add-ons/presentation#keeping-a-changelog -->
 
+## v1.2.1 04/02/2026
+### Fixed
+- Support for older non-AVX/AVX2 CPU support (some celeron devices had caddy issues)
+
 ## v1.2 04/02/2026
 ### Added
 - Added option to enable debug logging for all services

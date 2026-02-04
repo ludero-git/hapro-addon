@@ -1,7 +1,7 @@
 name: "hapro"
 description: "Professional manager for multiple HA installations."
 slug: "hapro"
-version: "v1.2"
+version: "v1.2.1"
 image: ghcr.io/ludero-git/hapro-addon-{arch}
 url: "https://github.com/ludero-git/hapro-addon/tree/main/hapro"
 init: false
