@@ -1,3 +1,4 @@
+import { getApiUrl, getUuid } from "./apiHelperService";
 import clientToml from "/usr/bin/client.toml";
 
 async function watchNotifications() {
@@ -40,11 +41,19 @@ async function watchNotifications() {
 }
 
 async function handleNotification(notification) {
+    const uuid = await getUuid();
+    const apiUrl = await getApiUrl();
+    if (!uuid || !apiUrl) {
+      console.error("Cannot handle notification: Missing UUID or API URL.");
+      return;
+    }
   const token = await fetchToken();
-  const uuidEntry = await Bun.file("/homeassistant/.storage/core.uuid").text();
-  const uuid = JSON.parse(uuidEntry).data.uuid;
+  if (!token) {
+    console.error("Cannot handle notification: Failed to fetch token.");
+    return;
+  }
   const response = await fetch(
-    `https://api.ludero.nl/api/notification/${uuid}`,
+    `${apiUrl.replace(/\/$/, "")}/api/notification/${uuid}`,
     {
       method: "POST",
       headers: {
@@ -65,8 +74,13 @@ async function fetchToken() {
     return cachedToken;
   }
 
+  const apiUrl = await getApiUrl();
+  if (!apiUrl) {
+    return null;
+  }
+
   const key = clientToml.client.transport.noise.remote_public_key;
-  const response = await fetch("https://api.ludero.nl/connect/token", {
+  const response = await fetch(`${apiUrl.replace(/\/$/, "")}/connect/token`, {
     method: "POST",
     headers: {
       "Content-Type": "application/x-www-form-urlencoded",

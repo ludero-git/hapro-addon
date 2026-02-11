@@ -1,6 +1,6 @@
 import { watch } from "fs";
 import { readdir } from "fs/promises";
-import { doSupervisorRequest } from "./apiHelperService";
+import { doSupervisorRequest, getApiUrl, getUuid } from "./apiHelperService";
 
 const BACKUP_DIR = "/backup";
 
@@ -33,11 +33,13 @@ async function checkBackupCompletion(fileName: string): Promise<boolean> {
 
 async function notifyBackupComplete() {
   try {
-    const uuidEntry = await Bun.file(
-      "/homeassistant/.storage/core.uuid",
-    ).text();
-    const uuid = JSON.parse(uuidEntry).data.uuid;
-    await fetch(`https://api.ludero.nl/api/backup/${uuid}/synchronize`, {
+    const uuid = await getUuid();
+    const apiUrl = await getApiUrl();
+    if (!uuid || !apiUrl) {
+      console.error("Cannot send notification: Missing UUID or API URL.");
+      return;
+    }
+    await fetch(`${apiUrl.replace(/\/$/, "")}/api/backup/${uuid}/synchronize`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

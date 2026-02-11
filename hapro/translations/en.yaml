@@ -1,10 +1,10 @@
 configuration:
   uuid:
     name: Your UUID
-    description: You can use this UUID in your portal to identify this installation, changing it won't do anything.
+    description: Watch out! Changing this will mean it's not reachable via the current subdomain! You can use this UUID in your portal to identify this installation, changing it will result in a new installation (or reconnection if uuid already exists) in the portal. Setting it to an empty string will generate a new UUID for this installation.
   apiUrl:
     name: API URL
     description: The URL of the API to connect to. Do not change this unless you know what you are doing.
   debug:
     name: Debug mode
-    description: Enable debug mode to see more detailed logs.
+    description: Enable debug mode to see more detailed logs. This will decrease performance significantly.

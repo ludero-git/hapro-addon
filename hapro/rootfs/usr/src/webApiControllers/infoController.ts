@@ -49,12 +49,10 @@ async function getInfo() {
                       {% set enabled_entities.entities = enabled_entities.entities + [ entity ] %}
                       {% endif %}
                     {% endfor %}
-                    {{ enabled_entities.entities }}`,
+                    {{ enabled_entities.entities | tojson }}`,
         }
       );
-      const enabledStatistics = JSON.parse(
-        getAllEnabledStatistics.replace(/'/g, '"')
-      );
+      const enabledStatistics = JSON.parse(getAllEnabledStatistics);
       const statPromises = Object.entries(statistics).map(async ([key, entity]) => {
         if (enabledStatistics.includes(entity)) {
           const result = await helpers.doHaInternalApiRequest(`/states/${entity}`);

@@ -1,5 +1,14 @@
 <!-- https://developers.home-assistant.io/docs/add-ons/presentation#keeping-a-changelog -->
 
+## v1.3.0 11/02/2026
+### UUID Changes
+- Instead of using HA Core UUID (which was duplicated across devices due to backup restores and caused conflicts), the addon now generates and uses its own unique UUID for device identification. This resolves issues with multiple devices showing up as the same in the HaPro dashboard.
+- If the config option is empty, it will generate a new UUID and use that. If there is an existing UUID, it will try to use that one with the api.
+
+### Fixed
+- The bun internal api didn't properly handle addon config settings.
+- Everywhere where supervisor is called for template rendering, it now uses `| tojson` instead of JSON.parsing the result
+
 ## v1.2.2 04/02/2026
 ### Added
 - Support for configurable Caddy port to resolve conflicts

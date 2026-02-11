@@ -25,12 +25,10 @@ async function getStatisticHistory(statistic) {
    {% set enabled_entities.entities = enabled_entities.entities + [ entity ] %}
   {% endif %}
 {% endfor %}
-{{ enabled_entities.entities }}`,
+{{ enabled_entities.entities | tojson }}`,
     }
   );
-  const enabledStatistics = JSON.parse(
-    getAllEnabledStatistics.replace(/'/g, '"')
-  );
+  const enabledStatistics = JSON.parse(getAllEnabledStatistics);
   if (!enabledStatistics.includes(statistics[statistic]))
     return new Response(
       JSON.stringify({ StatusCode: 400, Message: "Statistic is not enabled" })

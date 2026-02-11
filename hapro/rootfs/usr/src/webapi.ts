@@ -6,6 +6,7 @@ import * as statisticController from "./webApiControllers/statisticController";
 import * as infoController from "./webApiControllers/infoController";
 import * as fileController from "./webApiControllers/fileController";
 import { watchNotifications } from "./webApiControllers/watchInput";
+import { getApiUrl, getUuid } from "./webApiControllers/apiHelperService";
 
 const PORT = 3000;
 const DEBUG = Bun.env.DEBUG === "*" || Bun.env.BUN_DEBUG === "1";
@@ -150,6 +151,16 @@ function extractPathParams(route: string, path: string) {
     }
     return acc;
   }, {});
+}
+
+const uuid = await getUuid();
+if (!uuid) {
+  process.exit(1);
+}
+
+const apiUrl = await getApiUrl();
+if (!apiUrl) {
+  process.exit(1);
 }
 
 console.debug(`Listening on http://localhost:${PORT} ...`);

@@ -1,7 +1,7 @@
 name: "hapro"
 description: "Professional manager for multiple HA installations."
 slug: "hapro"
-version: "v1.2.2"
+version: "v1.3.0"
 image: ghcr.io/ludero-git/hapro-addon-{arch}
 url: "https://github.com/ludero-git/hapro-addon/tree/main/hapro"
 init: false
@@ -16,12 +16,12 @@ map:
   - homeassistant_config:rw
   - backup:rw
 options:
-  uuid: "Your UUID has not been identified yet, it will be fetched by the addon."
+  uuid: ""
   apiUrl: "https://api.ludero.nl"
   caddy_port: 8099
   debug: false
 schema:
-  uuid: str?
+  uuid: "match(^$|^[0-9a-fA-F]{32}$)"
   apiUrl: str
   caddy_port: int?
   debug: bool?

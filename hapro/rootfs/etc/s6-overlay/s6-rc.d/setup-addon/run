@@ -11,6 +11,7 @@ source /usr/src/request.sh
 
 # Get API URL from config
 HaproApi=$(bashio::config 'apiUrl')
+HaproApi="${HaproApi%/}" # Remove trailing slash if exists
 bashio::log.info "SETUP-ADDON: Using API URL: $HaproApi"
 
 bashio::log.notice "SETUP-ADDON: Setting HA configuration"
@@ -66,10 +67,13 @@ if [ "$changed" -eq 1 ]; then
 fi
 
 bashio::log.notice "SETUP-ADDON: Getting client.toml"
-uuid=$(jq -r '.data.uuid' /homeassistant/.storage/core.uuid)
-
-# attempt to set token to addon confgi
-bashio::addon.option "uuid" "$uuid"
+uuid=$(bashio::config 'uuid')
+bashio::log.notice "SETUP-ADDON: Current UUID: $uuid"
+if [ -z "$uuid" ] || [ "$uuid" == "null" ]; then
+    uuid=$(cat /proc/sys/kernel/random/uuid | tr -d '-')
+    bashio::log.info "SETUP-ADDON: No UUID set in addon config, generated new UUID: $uuid"
+    bashio::addon.option "uuid" "$uuid"
+fi
 
 res=$(curl -s -o /usr/bin/client.toml -w "%{http_code}" "$HaproApi/api/Device/$uuid/rathole" )
 if [ "$res" -eq 404 ]; then

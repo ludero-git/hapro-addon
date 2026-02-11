@@ -44,16 +44,16 @@ async function isSystemMonitorEnabled() {
   }
 
   const response = await doHaInternalApiRequest(`/template`, "POST", {
-    template: `{{ integration_entities('System Monitor') }}`,
+    template: `{{ integration_entities('System Monitor') | tojson }}`,
   });
   return response.length > 0;
 }
 
 async function getSMStatistics() {
   const result = await doHaInternalApiRequest("/template", "POST", {
-    template: `{{ integration_entities('System Monitor') }}`,
+    template: `{{ integration_entities('System Monitor') | tojson }}`,
   });
-  const SMStatistics = JSON.parse(result.replace(/'/g, '"'));
+  const SMStatistics = JSON.parse(result);
   if (SMStatistics.length <= 0) return SMStatistics;
   const languageConfig = Bun.file("/homeassistant/.storage/core.config");
   const languageConfigContent = await languageConfig.json();
@@ -85,4 +85,26 @@ async function getSMStatistics() {
   }
 }
 
-export { doSupervisorRequest, doHaInternalApiRequest, isSystemMonitorEnabled, getSMStatistics };
+async function getUuid() {
+  const uuid = Bun.env.HAPRO_UUID;
+  if (!uuid) {
+    console.error(
+      "WebApi failed to retrieve UUID: UUID is not set in environment variables.",
+    );
+    return null;
+  }
+  return uuid;
+}
+
+async function getApiUrl() {
+  const apiUrl = Bun.env.HAPRO_API_URL;
+  if (!apiUrl) {
+    console.error(
+      "WebApi failed to retrieve API URL: API URL is not set in environment variables.",
+    );
+    return null;
+  }
+  return apiUrl;
+}
+
+export { doSupervisorRequest, doHaInternalApiRequest, isSystemMonitorEnabled, getSMStatistics, getUuid, getApiUrl };

@@ -1,6 +1,12 @@
 #!/usr/bin/with-contenv bashio
 bashio::log.info "WEBAPI: Starting Web API"
 
+# set bashio config options as environment variables for the webapi
+HaproApi=$(bashio::config 'apiUrl')
+export HAPRO_API_URL="$HaproApi"
+Uuid=$(bashio::config 'uuid')
+export HAPRO_UUID="$Uuid"
+
 if bashio::config.true 'debug'; then
     export BUN_DEBUG=1
     export DEBUG=*
