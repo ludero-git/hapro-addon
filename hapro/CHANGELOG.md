@@ -1,5 +1,15 @@
 <!-- https://developers.home-assistant.io/docs/add-ons/presentation#keeping-a-changelog -->
 
+## v1.3.1 12/02/2026
+### Added
+- Support for both swap and storage usage
+
+### Fixed
+- Better error handling for internal HA calls
+- Better internal JSON response handling
+- Fixed stats grabbing the first stat that includes a string, now uses regex to match the exact stat name (with support for _X suffixes for multiple instances of the same stat)
+- Improved multi-language support for stats
+
 ## v1.3.0 11/02/2026
 ### UUID Changes
 - Instead of using HA Core UUID (which was duplicated across devices due to backup restores and caused conflicts), the addon now generates and uses its own unique UUID for device identification. This resolves issues with multiple devices showing up as the same in the HaPro dashboard.

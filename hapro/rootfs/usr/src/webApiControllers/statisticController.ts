@@ -28,7 +28,7 @@ async function getStatisticHistory(statistic) {
 {{ enabled_entities.entities | tojson }}`,
     }
   );
-  const enabledStatistics = JSON.parse(getAllEnabledStatistics);
+  const enabledStatistics = typeof getAllEnabledStatistics === "object" ? getAllEnabledStatistics : JSON.parse(getAllEnabledStatistics);
   if (!enabledStatistics.includes(statistics[statistic]))
     return new Response(
       JSON.stringify({ StatusCode: 400, Message: "Statistic is not enabled" })

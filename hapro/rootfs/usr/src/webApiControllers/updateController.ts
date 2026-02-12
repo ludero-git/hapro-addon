@@ -26,7 +26,7 @@ async function getUpdates() {
     });
     const fileUpdateStream = await getCurrentFileVersion();
     const fileUpdate = await fileUpdateStream.json();
-    const listOfUpdates = JSON.parse(response);
+    const listOfUpdates = typeof response === "object" ? response : JSON.parse(response);
     listOfUpdates.push({
       version_current: fileUpdate?.data?.version || 0,
       version_latest: null,

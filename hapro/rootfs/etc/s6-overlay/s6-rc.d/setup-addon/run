@@ -75,7 +75,7 @@ if [ -z "$uuid" ] || [ "$uuid" == "null" ]; then
     bashio::addon.option "uuid" "$uuid"
 fi
 
-res=$(curl -s -o /usr/bin/client.toml -w "%{http_code}" "$HaproApi/api/Device/$uuid/rathole" )
+res=$(curl -k -s -o /usr/bin/client.toml -w "%{http_code}" "$HaproApi/api/Device/$uuid/rathole" )
 if [ "$res" -eq 404 ]; then
     bashio::log.error "SETUP-ADDON: Failed to get client.toml, registering device first"
 
@@ -83,8 +83,8 @@ if [ "$res" -eq 404 ]; then
     # doSupervisorRequest "auth/list"
     ownerAcc=$(jq -r '.data.users[] | select(.is_owner==true) | .name' /homeassistant/.storage/auth)
     bashio::log.notice "SETUP-ADDON: Owner account: $ownerAcc"
-    
-    res2=$(curl -s -H "Content-Type: application/json" -d "{\"uuid\":\"$uuid\",\"haAcc\":\"$ownerAcc\"}" "$HaproApi/api/PendingDevice/"| jq .statusCode)
+
+    res2=$(curl -k -s -H "Content-Type: application/json" -d "{\"uuid\":\"$uuid\",\"haAcc\":\"$ownerAcc\"}" "$HaproApi/api/PendingDevice/"| jq .statusCode)
     bashio::log.notice "SETUP-ADDON: HTTP Post device Status Code: $res2"
     if [ "$res2" -eq 200 ]; then
         bashio::log.info "SETUP-ADDON: Device registered, claim this device on the portal with token: $uuid"

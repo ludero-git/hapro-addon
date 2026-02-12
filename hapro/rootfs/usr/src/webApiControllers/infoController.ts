@@ -52,7 +52,7 @@ async function getInfo() {
                     {{ enabled_entities.entities | tojson }}`,
         }
       );
-      const enabledStatistics = JSON.parse(getAllEnabledStatistics);
+      const enabledStatistics = typeof getAllEnabledStatistics === "object" ? getAllEnabledStatistics : JSON.parse(getAllEnabledStatistics);
       const statPromises = Object.entries(statistics).map(async ([key, entity]) => {
         if (enabledStatistics.includes(entity)) {
           const result = await helpers.doHaInternalApiRequest(`/states/${entity}`);
@@ -77,20 +77,36 @@ async function getInfo() {
       updates: updateInfo,
       fileVersion: fileVersion?.data?.version || 0,
       storage: {
-        total: (statistics["storageUsed"] + statistics["storageFree"]),
+        total: statistics["storageUsed"] + statistics["storageFree"],
         used: statistics["storageUsed"],
         free: statistics["storageFree"],
-        usage: statistics["storageUsage"] ?? parseFloat(statistics["storageUsed"]) / parseFloat(statistics["storageUsed"] + statistics["storageFree"]) * 100,
+        usage:
+          statistics["storageUsage"] ??
+          (parseFloat(statistics["storageUsed"]) /
+            parseFloat(statistics["storageUsed"] + statistics["storageFree"])) *
+            100,
       },
       cpu: {
         usage: statistics["cpuUsage"],
-        temperature: statistics["cpuTemp"]
+        temperature: statistics["cpuTemp"],
       },
       memory: {
-        total: (statistics["memoryUsed"] == null || statistics["memoryFree"] == null) ? null : (statistics["memoryUsed"] + statistics["memoryFree"]),
+        total:
+          statistics["memoryUsed"] == null || statistics["memoryFree"] == null
+            ? null
+            : statistics["memoryUsed"] + statistics["memoryFree"],
         used: statistics["memoryUsed"],
         free: statistics["memoryFree"],
         usage: statistics["memoryUsage"],
+      },
+      swap: {
+        total:
+          statistics["swapUsed"] == null || statistics["swapFree"] == null
+            ? null
+            : statistics["swapUsed"] + statistics["swapFree"],
+        used: statistics["swapUsed"],
+        free: statistics["swapFree"],
+        usage: statistics["swapUsage"],
       },
     };
     return new Response(JSON.stringify({ StatusCode: 200, data: response, Warnings: warnings }));
