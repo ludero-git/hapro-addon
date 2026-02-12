@@ -1,5 +1,9 @@
 <!-- https://developers.home-assistant.io/docs/add-ons/presentation#keeping-a-changelog -->
 
+## v1.3.3 12/02/2026
+### Fixed
+- Fixed language stat override support
+
 ## v1.3.2 12/02/2026
 ### Added
 - Improved JSON error parsing

@@ -102,10 +102,10 @@ async function getSMStatistics() {
   switch (language) {
     case "nl":
       regexSet = {
+        ...defaultRegexSet,
         storageUsage: /^sensor\.system_monitor_schijfgebruik(_\d+)?$/i,
         cpuTemp: /^sensor\.system_monitor_processortemperatuur(_\d+)?$/i,
         memoryUsage: /^sensor\.system_monitor_geheugengebruik(_\d+)?$/i,
-        ...defaultRegexSet,
       };
   }
 
