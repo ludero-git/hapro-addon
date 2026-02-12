@@ -1,5 +1,9 @@
 <!-- https://developers.home-assistant.io/docs/add-ons/presentation#keeping-a-changelog -->
 
+## v1.3.4 12/02/2026
+### Fixed
+- Trusted rathole ip on caddy to prevent global ludero ip bans (it now bans forwarded ips of actual users instead of the rathole ip)
+
 ## v1.3.3 12/02/2026
 ### Fixed
 - Fixed language stat override support

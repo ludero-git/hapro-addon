@@ -3,6 +3,9 @@
   log default {
     level WARN
   }
+  servers {
+    trusted_proxies static 127.0.0.1 ::1
+  }
 }
 
 :{$CADDY_PORT} {
