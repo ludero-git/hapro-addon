@@ -28,7 +28,14 @@ async function getStatisticHistory(statistic) {
 {{ enabled_entities.entities | tojson }}`,
     }
   );
-  const enabledStatistics = typeof getAllEnabledStatistics === "object" ? getAllEnabledStatistics : JSON.parse(getAllEnabledStatistics);
+  var enabledStatistics: string[] = [];
+  try {    
+    enabledStatistics = typeof getAllEnabledStatistics === "object" ? getAllEnabledStatistics : JSON.parse(getAllEnabledStatistics);
+  }
+  catch (error) {
+    console.error("Error parsing enabled statistics response:", error instanceof Error ? error.message : error, "Response content:", getAllEnabledStatistics);
+    enabledStatistics = getAllEnabledStatistics ? String(getAllEnabledStatistics).replace(/[\[\]"]+/g, "").split(",").map((item: string) => item.trim()) : [];
+  }
   if (!enabledStatistics.includes(statistics[statistic]))
     return new Response(
       JSON.stringify({ StatusCode: 400, Message: "Statistic is not enabled" })

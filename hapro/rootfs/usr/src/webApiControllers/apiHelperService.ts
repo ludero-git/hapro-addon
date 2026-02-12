@@ -69,7 +69,14 @@ async function getSMStatistics() {
   const result = await doHaInternalApiRequest("/template", "POST", {
     template: `{{ integration_entities('System Monitor') | tojson }}`,
   });
-  const SMStatistics = typeof result === "object" ? result : JSON.parse(result);
+  var SMStatistics: string[] = [];
+  try {
+    SMStatistics = typeof result === "object" ? result : JSON.parse(result);
+  }
+  catch (error) {
+    console.error("Error parsing System Monitor statistics response:", error instanceof Error ? error.message : error, "Response content:", result);
+    SMStatistics = result ? String(result).replace(/[\[\]"]+/g, "").split(",").map((item: string) => item.trim()) : [];
+  }
   if (SMStatistics.length <= 0) return SMStatistics;
   const languageConfig = Bun.file("/homeassistant/.storage/core.config");
   const languageConfigContent = await languageConfig.json();

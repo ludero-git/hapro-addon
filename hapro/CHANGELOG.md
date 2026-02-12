@@ -1,5 +1,10 @@
 <!-- https://developers.home-assistant.io/docs/add-ons/presentation#keeping-a-changelog -->
 
+## v1.3.2 12/02/2026
+### Added
+- Improved JSON error parsing
+
+
 ## v1.3.1 12/02/2026
 ### Added
 - Support for both swap and storage usage

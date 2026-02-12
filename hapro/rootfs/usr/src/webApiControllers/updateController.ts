@@ -26,7 +26,14 @@ async function getUpdates() {
     });
     const fileUpdateStream = await getCurrentFileVersion();
     const fileUpdate = await fileUpdateStream.json();
-    const listOfUpdates = typeof response === "object" ? response : JSON.parse(response);
+    var listOfUpdates: any[] = [];
+    try {      
+      listOfUpdates = typeof response === "object" ? response : JSON.parse(response);
+    }
+    catch (error) {
+      console.error("Error parsing updates response:", error instanceof Error ? error.message : error, "Response content:", response);
+      listOfUpdates = response ? String(response).replace(/[\[\]"]+/g, "").split(",").map((item: string) => item.trim()) : [];
+    }
     listOfUpdates.push({
       version_current: fileUpdate?.data?.version || 0,
       version_latest: null,

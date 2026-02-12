@@ -52,7 +52,14 @@ async function getInfo() {
                     {{ enabled_entities.entities | tojson }}`,
         }
       );
-      const enabledStatistics = typeof getAllEnabledStatistics === "object" ? getAllEnabledStatistics : JSON.parse(getAllEnabledStatistics);
+      var enabledStatistics: string[] = [];
+      try {        
+        enabledStatistics = typeof getAllEnabledStatistics === "object" ? getAllEnabledStatistics : JSON.parse(getAllEnabledStatistics);
+      }
+      catch (error) {
+        console.error("Error parsing enabled statistics response:", error instanceof Error ? error.message : error, "Response content:", getAllEnabledStatistics);
+        enabledStatistics = getAllEnabledStatistics ? String(getAllEnabledStatistics).replace(/[\[\]"]+/g, "").split(",").map((item: string) => item.trim()) : [];
+      }
       const statPromises = Object.entries(statistics).map(async ([key, entity]) => {
         if (enabledStatistics.includes(entity)) {
           const result = await helpers.doHaInternalApiRequest(`/states/${entity}`);
