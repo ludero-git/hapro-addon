@@ -1,5 +1,13 @@
 <!-- https://developers.home-assistant.io/docs/add-ons/presentation#keeping-a-changelog -->
 
+## v1.3.5 16/02/2026
+### Fixed
+- Fixed enabling hapro header auth when the config line is present but disabled (# )
+
+### Added
+- Added support for older System Monitor entities that don't have the system_monitor_ prefix (this prefix has bene introduced in 2024.1)
+- Added debug logging for the internal api's when debug logging is enabled in the addon config
+
 ## v1.3.4 12/02/2026
 ### Fixed
 - Trusted rathole ip on caddy to prevent global ludero ip bans (it now bans forwarded ips of actual users instead of the rathole ip)

@@ -55,7 +55,10 @@ else
     fi
 fi
 
-if ! grep -q "auth_header:" /homeassistant/configuration.yaml; then
+if grep -q "^[[:space:]]*#\+.*auth_header: !include hapro-auth.yaml" /homeassistant/configuration.yaml; then # present but disabled
+    sed -i 's/^[[:space:]]*#\+[[:space:]]*auth_header:.*$/auth_header: !include hapro-auth.yaml #Added by the HaPro addon/' /homeassistant/configuration.yaml
+    changed=1
+elif ! grep -q "^[[:space:]]*auth_header: !include hapro-auth.yaml" /homeassistant/configuration.yaml; then # Not present at all, add it
     echo "auth_header: !include hapro-auth.yaml #Added by the HaPro addon" >> /homeassistant/configuration.yaml
     changed=1
 fi

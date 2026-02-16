@@ -12,7 +12,11 @@ async function doSupervisorRequest(
       },
       body: body ? JSON.stringify(body) : undefined,
     });
-    return await response.json();
+    const responseText = await response.text();
+    console.debug(
+      `Supervisor API request to ${path} responded with status ${response.status} and content-type ${response.headers.get("content-type")} and body: ${responseText}`,
+    );
+    return JSON.parse(responseText);
   } catch (error) {
     console.error(
       `Error during Supervisor API request to ${path}:`,
@@ -36,9 +40,17 @@ async function doHaInternalApiRequest(
       },
       body: body ? JSON.stringify(body) : undefined,
     });
-    if (response.headers.get("content-type")?.includes("application/json"))
-      return await response.json();
-    return await response.text();
+    const contentType = response.headers.get("content-type");
+    const responseText = await response.text();
+    console.debug(
+      `HA internal API request to ${path} responded with status ${response.status} and content-type ${contentType} and body: ${responseText}`,
+    );
+    if (
+      typeof contentType === "string" &&
+      contentType.indexOf("application/json") !== -1
+    )
+      return JSON.parse(responseText);
+    return responseText;
   } catch (error) {
     console.error(
       `Error during HA internal API request to ${path}:`,
@@ -72,10 +84,19 @@ async function getSMStatistics() {
   var SMStatistics: string[] = [];
   try {
     SMStatistics = typeof result === "object" ? result : JSON.parse(result);
-  }
-  catch (error) {
-    console.error("Error parsing System Monitor statistics response:", error instanceof Error ? error.message : error, "Response content:", result);
-    SMStatistics = result ? String(result).replace(/[\[\]"]+/g, "").split(",").map((item: string) => item.trim()) : [];
+  } catch (error) {
+    console.error(
+      "Error parsing System Monitor statistics response:",
+      error instanceof Error ? error.message : error,
+      "Response content:",
+      result,
+    );
+    SMStatistics = result
+      ? String(result)
+          .replace(/[\[\]"]+/g, "")
+          .split(",")
+          .map((item: string) => item.trim())
+      : [];
   }
   if (SMStatistics.length <= 0) return SMStatistics;
   const languageConfig = Bun.file("/homeassistant/.storage/core.config");
@@ -83,17 +104,17 @@ async function getSMStatistics() {
   const language = languageConfigContent.data.language;
 
   var defaultRegexSet = {
-    storageUsed: /^sensor\.system_monitor_disk_use(_\d+)?$/i,
-    storageFree: /^sensor\.system_monitor_disk_free(_\d+)?$/i,
-    storageUsage: /^sensor\.system_monitor_disk_usage(_\d+)?$/i,
-    cpuUsage: /^sensor\.system_monitor_processor_use(_\d+)?$/i,
-    cpuTemp: /^sensor\.system_monitor_processor_temperature(_\d+)?$/i,
-    memoryUsed: /^sensor\.system_monitor_memory_use(_\d+)?$/i,
-    memoryFree: /^sensor\.system_monitor_memory_free(_\d+)?$/i,
-    memoryUsage: /^sensor\.system_monitor_memory_usage(_\d+)?$/i,
-    swapUsed: /^sensor\.system_monitor_swap_use(_\d+)?$/i,
-    swapFree: /^sensor\.system_monitor_swap_free(_\d+)?$/i,
-    swapUsage: /^sensor\.system_monitor_swap_usage(_\d+)?$/i,
+    storageUsed: /^sensor\.(system_monitor_)?disk_use(_\d+)?$/i,
+    storageFree: /^sensor\.(system_monitor_)?disk_free(_\d+)?$/i,
+    storageUsage: /^sensor\.(system_monitor_)?disk_usage(_\d+)?$/i,
+    cpuUsage: /^sensor\.(system_monitor_)?processor_use(_\d+)?$/i,
+    cpuTemp: /^sensor\.(system_monitor_)?processor_temperature(_\d+)?$/i,
+    memoryUsed: /^sensor\.(system_monitor_)?memory_use(_\d+)?$/i,
+    memoryFree: /^sensor\.(system_monitor_)?memory_free(_\d+)?$/i,
+    memoryUsage: /^sensor\.(system_monitor_)?memory_usage(_\d+)?$/i,
+    swapUsed: /^sensor\.(system_monitor_)?swap_use(_\d+)?$/i,
+    swapFree: /^sensor\.(system_monitor_)?swap_free(_\d+)?$/i,
+    swapUsage: /^sensor\.(system_monitor_)?swap_usage(_\d+)?$/i,
   };
 
   var regexSet = { ...defaultRegexSet };
@@ -103,9 +124,9 @@ async function getSMStatistics() {
     case "nl":
       regexSet = {
         ...defaultRegexSet,
-        storageUsage: /^sensor\.system_monitor_schijfgebruik(_\d+)?$/i,
-        cpuTemp: /^sensor\.system_monitor_processortemperatuur(_\d+)?$/i,
-        memoryUsage: /^sensor\.system_monitor_geheugengebruik(_\d+)?$/i,
+        storageUsage: /^sensor\.(system_monitor_)?schijfgebruik(_\d+)?$/i,
+        cpuTemp: /^sensor\.(system_monitor_)?processortemperatuur(_\d+)?$/i,
+        memoryUsage: /^sensor\.(system_monitor_)?geheugengebruik(_\d+)?$/i,
       };
   }
 
