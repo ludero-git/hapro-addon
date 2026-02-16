@@ -25,3 +25,4 @@ schema:
   apiUrl: str
   caddy_port: int?
   debug: bool?
+
