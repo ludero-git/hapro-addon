@@ -106,15 +106,18 @@ async function getSMStatistics() {
   var defaultRegexSet = {
     storageUsed: /^sensor\.(system_monitor_)?disk_use(_\d+)?$/i,
     storageFree: /^sensor\.(system_monitor_)?disk_free(_\d+)?$/i,
-    storageUsage: /^sensor\.(system_monitor_)?disk_usage(_\d+)?$/i,
+    storageUsage:
+      /^sensor\.(system_monitor_)?disk_((usage)|(use_percent))(_\d+)?$/i,
     cpuUsage: /^sensor\.(system_monitor_)?processor_use(_\d+)?$/i,
     cpuTemp: /^sensor\.(system_monitor_)?processor_temperature(_\d+)?$/i,
     memoryUsed: /^sensor\.(system_monitor_)?memory_use(_\d+)?$/i,
     memoryFree: /^sensor\.(system_monitor_)?memory_free(_\d+)?$/i,
-    memoryUsage: /^sensor\.(system_monitor_)?memory_usage(_\d+)?$/i,
+    memoryUsage:
+      /^sensor\.(system_monitor_)?memory_((usage)|(use_percent))(_\d+)?$/i,
     swapUsed: /^sensor\.(system_monitor_)?swap_use(_\d+)?$/i,
     swapFree: /^sensor\.(system_monitor_)?swap_free(_\d+)?$/i,
-    swapUsage: /^sensor\.(system_monitor_)?swap_usage(_\d+)?$/i,
+    swapUsage:
+      /^sensor\.(system_monitor_)?swap_((usage)|(use_percent))(_\d+)?$/i,
   };
 
   var regexSet = { ...defaultRegexSet };
