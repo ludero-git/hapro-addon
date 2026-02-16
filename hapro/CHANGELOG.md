@@ -1,5 +1,9 @@
 <!-- https://developers.home-assistant.io/docs/add-ons/presentation#keeping-a-changelog -->
 
+## v1.3.6 16/02/2026
+### Fixed
+- Fixed older system monitor entities that use 'use_percent' instead of 'usage' not being recognized properly
+
 ## v1.3.5 16/02/2026
 ### Fixed
 - Fixed enabling hapro header auth when the config line is present but disabled (# )
