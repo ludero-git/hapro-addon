@@ -1,5 +1,16 @@
 <!-- https://developers.home-assistant.io/docs/add-ons/presentation#keeping-a-changelog -->
 
+## v1.3.7 09/03/2026
+### Added
+- Added endpoints to:
+    - Get current backup configuration
+    - Get current emergency key for (encrypted) remote storage
+- Added detection for new backup emergency key to notify the server to fetch the new key
+
+### Fixed
+- Fixed an issue where new backup detection never completed succesfully causing infinte loops to "check" if new backup is available
+
+
 ## v1.3.6 16/02/2026
 ### Fixed
 - Fixed older system monitor entities that use 'use_percent' instead of 'usage' not being recognized properly

@@ -1,4 +1,5 @@
 # Home Assistant Add-on: hapro (Development)
+# DO NOT USE - IT'S WAY BEHIND THE PRODUCTION VERSION
 
 ![Supports aarch64 Architecture][aarch64-shield]
 ![Supports amd64 Architecture][amd64-shield]

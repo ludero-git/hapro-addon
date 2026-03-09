@@ -33,6 +33,8 @@ const PATHS = {
   SYSTEMMONITOR_ENABLE_ENTITIES: "/systemmonitor/enable_entities",
   STATISTIC_HISTORY: "/statistic/history/:entityId",
   BACKUPS: "/backups",
+  BACKUPS_CONFIG: "/backups/config",
+  BACKUPS_EMERGENCY_KEY: "/backups/emergency_key",
   BACKUPS_INFO: "/backups/:backupId/info",
   BACKUPS_DOWNLOAD: "/backups/:backupId/download",
   BACKUPS_UPLOAD: "/backups/upload",
@@ -86,6 +88,10 @@ serve({
           );
         case matchPath(PATHS.BACKUPS, req):
           return await backupController.getBackups();
+        case matchPath(PATHS.BACKUPS_CONFIG, req):
+          return await backupController.getBackupConfig();
+        case matchPath(PATHS.BACKUPS_EMERGENCY_KEY, req):
+          return await backupController.getBackupEmergencyKey();
         case matchPath(PATHS.BACKUPS_INFO, req):
           return await backupController.getBackupInfo(
             extractPathParams(PATHS.BACKUPS_INFO, path)["backupId"],
