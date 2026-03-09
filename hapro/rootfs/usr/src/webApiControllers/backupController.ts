@@ -261,33 +261,27 @@ async function getBackupConfig() {
     const backupHassioFileContent = JSON.parse(backupHassioFileText);
     const backupHassioFileData = backupHassioFileContent.data.update_config;
     const backupConfig = {
-      automaticBackupsEnabled: backupFileData.automatic_backups_configured, //ha uses to determain a popup in the UI to ask the user to configure automatic backups, true once configured
-      content: backupFileData.automatic_backups_configured
-        ? {
-            includeAllAddons: backupFileData.create_backup.include_all_addons,
-            Addons: backupFileData.create_backup.include_addons, // filled if all_addons is false, if false and this is empty, no addons will be included
-            includeDatabase: backupFileData.create_backup.include_database, //history
-            Folders: backupFileData.create_backup.include_folders, // if empty, no folders will be included, media and share can be included here
-          }
-        : null,
-      retention: backupFileData.automatic_backups_configured
-        ? {
-            // both null = forever
-            copies: backupFileData.retention.copies, // int indicating how many backups to keep
-            days: backupFileData.retention.days, // int indicating how many days to keep backups
-          }
-        : null,
-      schedule: backupFileData.automatic_backups_configured
-        ? {
-            recurrence: backupFileData.schedule.recurrence, // never, daily, custom_days
-            days: backupFileData.schedule.days, // filled if recurrence is custom_days, values are the days of the week, e.g. ["mon", "tue"]
-            time: backupFileData.schedule.time, // time of the day null=System Optiomal, otherwise "HH:mm:00"
-          }
-        : null,
+      automaticBackupsEnabled: backupFileData?.automatic_backups_configured ?? false, //ha uses to determain a popup in the UI to ask the user to configure automatic backups, true once configured
+      content: {
+          includeAllAddons: backupFileData?.create_backup?.include_all_addons ?? false,
+          Addons: backupFileData?.create_backup?.include_addons ?? [], // filled if all_addons is false, if false and this is empty, no addons will be included
+          includeDatabase: backupFileData?.create_backup?.include_database ?? false, //history
+          Folders: backupFileData?.create_backup?.include_folders ?? [], // if empty, no folders will be included, media and share can be included here
+        },
+      retention: {
+          // both null = forever
+          copies: backupFileData?.retention?.copies ?? null, // int indicating how many backups to keep
+          days: backupFileData?.retention?.days ?? null, // int indicating how many days to keep backups
+        },
+      schedule: {
+          recurrence: backupFileData?.schedule?.recurrence ?? "never", // never, daily, custom_days
+          days: backupFileData?.schedule?.days ?? null, // filled if recurrence is custom_days, values are the days of the week, e.g. ["mon", "tue"]
+          time: backupFileData?.schedule?.time ?? null, // time of the day null=System Optiomal, otherwise "HH:mm:00"
+        },
       backupOnUpdate: {
-        homeassistant: backupHassioFileData.core_backup_before_update,
-        addons: backupHassioFileData.add_on_backup_before_update,
-        addonsRetain: backupHassioFileData.add_on_backup_retain_copies, // int of copies to keep
+        homeassistant: backupHassioFileData?.core_backup_before_update ?? false,
+        addons: backupHassioFileData?.add_on_backup_before_update ?? false,
+        addonsRetain: backupHassioFileData?.add_on_backup_retain_copies ?? 1, // int of copies to keep
       },
     };
     return new Response(

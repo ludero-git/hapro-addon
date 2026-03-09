@@ -1,5 +1,9 @@
 <!-- https://developers.home-assistant.io/docs/add-ons/presentation#keeping-a-changelog -->
 
+## v1.3.8 09/03/2026
+### Fixed
+- Hotfix for backup config settings that aren't present when values have never been true
+
 ## v1.3.7 09/03/2026
 ### Added
 - Added endpoints to:
