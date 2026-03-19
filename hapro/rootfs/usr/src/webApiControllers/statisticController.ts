@@ -62,13 +62,21 @@ async function enableSystemMonitor() {
       })
     );
   }
-  const enableIntegration = await helpers.doHaInternalApiRequest(
-    "/config/config_entries/flow",
-    "POST",
-    { "handler": "systemmonitor", "show_advanced_options": false }
-  );
-  const integrationFlowId = enableIntegration?.flow_id;
-  if (!integrationFlowId) {
+  let enableIntegration = null;
+  let integrationFlowId = null;
+  try {
+    enableIntegration = await helpers.doHaInternalApiRequest(
+      "/config/config_entries/flow",
+      "POST",
+      { "handler": "systemmonitor", "show_advanced_options": false }
+    );
+    integrationFlowId = enableIntegration?.flow_id;
+
+    if (!integrationFlowId) {
+      console.error("Failed to start System Monitor integration flow, no flow_id received");
+      throw new Error("Failed to start System Monitor integration flow, no flow_id received");
+    }
+  } catch (error) {
     console.error("System Monitor is not enabled, got a bad response");
     return new Response(
       JSON.stringify({
@@ -76,12 +84,21 @@ async function enableSystemMonitor() {
         Message: "System Monitor is not enabled, got a bad response"
       })
     )
-  } else if (enableIntegration?.type === "abort") {
+  }
+  console.debug("Started System Monitor integration flow with flow_id:", integrationFlowId);
+  if (enableIntegration?.type === "abort") {
     await initWebsocketService();
-    await sendSocket(
-      "config_entries/disable",
-      { "entry_id": integrationFlowId, "disabled_by": null }
+    const configEntries = await sendSocket(
+      "config_entries/get",
+      { "domain": "systemmonitor" }
     );
+    const entryId = configEntries?.[0]?.entry_id;
+    if (entryId) {
+      await sendSocket(
+        "config_entries/disable",
+        { "entry_id": entryId, "disabled_by": null }
+      );
+    }
   } else if (enableIntegration?.type !== "form" || enableIntegration?.errors !== null) {
     console.error("System Monitor is not enabled, error");
     return new Response(
@@ -91,6 +108,7 @@ async function enableSystemMonitor() {
       })
     );
   }
+
   console.debug("System Monitor is now installed");
   await helpers.doHaInternalApiRequest(
     `/config/config_entries/flow/${integrationFlowId}`,
@@ -100,8 +118,8 @@ async function enableSystemMonitor() {
   console.info("System Monitor is now enabled");
   await helpers.doHaInternalApiRequest("/events/hapro_notification", "POST", {
     type: "Info",
-    title: "Enabled",
-    message: "System Monitor is now enabled",
+    title: "Enabled System Monitor",
+    message: "System Monitor integration is now enabled",
   });
   return new Response(
     JSON.stringify({
@@ -148,6 +166,11 @@ async function enableSystemMonitorEntities() {
     }
   }
   console.info("Enabled System Monitor Entities");
+  await helpers.doHaInternalApiRequest("/events/hapro_notification", "POST", {
+    type: "Info",
+    title: "Entities Enabled",
+    message: "System Monitor entities have been (re-)enabled, it might take a few moments for them to be available",
+  });
   return new Response(
     JSON.stringify({
       StatusCode: 200,

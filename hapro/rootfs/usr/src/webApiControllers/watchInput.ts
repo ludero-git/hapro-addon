@@ -18,29 +18,37 @@ async function watchNotifications() {
 }
 
 async function handleNotification(notification) {
-  const uuid = await getUuid();
-  const apiUrl = await getApiUrl();
-  if (!uuid || !apiUrl) {
-    console.error("Cannot handle notification: Missing UUID or API URL.");
-    return;
-  }
-  const token = await fetchToken();
-  if (!token) {
-    console.error("Cannot handle notification: Failed to fetch token.");
-    return;
-  }
-  const response = await fetch(
-    `${apiUrl.replace(/\/$/, "")}/api/notification/${uuid}`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token.access_token}`,
+  try {
+    console.debug("Received notification event:", notification);
+    const uuid = await getUuid();
+    const apiUrl = await getApiUrl();
+    if (!uuid || !apiUrl) {
+      console.error("Cannot handle notification: Missing UUID or API URL.");
+      return;
+    }
+    const token = await fetchToken();
+    if (!token) {
+      console.error("Cannot handle notification: Failed to fetch token.");
+      return;
+    }
+    const response = await fetch(
+      `${apiUrl.replace(/\/$/, "")}/api/notification/${uuid}`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token.access_token}`,
+        },
+        body: JSON.stringify(notification),
       },
-      body: JSON.stringify(notification),
-    },
-  );
-  const data = await response.text();
+    );
+    const data = await response.text();
+    console.debug(
+      `Sent notification to API, received status ${response.status} and body: ${data}`,
+    );
+  } catch (err) {
+    console.error("Error handling notification:", err);
+  }
 }
 
 let cachedToken = null;

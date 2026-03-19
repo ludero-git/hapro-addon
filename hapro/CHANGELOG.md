@@ -1,5 +1,12 @@
 <!-- https://developers.home-assistant.io/docs/add-ons/presentation#keeping-a-changelog -->
 
+## v1.4.0 19/03/2026
+### Added
+- Support for enabling System Monitor integration and entities without having to restart HA
+
+### Fixed
+- Improved error handling on API requests to avoid unexpected crashes
+
 ## v1.3.8 09/03/2026
 ### Fixed
 - Hotfix for backup config settings that aren't present when values have never been true
