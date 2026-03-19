@@ -1,5 +1,9 @@
 <!-- https://developers.home-assistant.io/docs/add-ons/presentation#keeping-a-changelog -->
 
+## v1.4.1 19/03/2026
+### Fixed
+- Repo cleanup
+
 ## v1.4.0 19/03/2026
 ### Added
 - Support for enabling System Monitor integration and entities without having to restart HA

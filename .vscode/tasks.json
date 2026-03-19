@@ -14,7 +14,27 @@
                 "panel": "new"
             },
             "problemMatcher": []
+        },
+        {
+            "label": "Restart HA Core (Integration)",
+            "type": "shell",
+            "command": "ha core restart",
+            "presentation": {
+                "reveal": "always",
+                "panel": "new"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Rebuild & Restart Add-on",
+            "type": "shell",
+            "command": "ADDON_NAME=$(basename ${workspaceFolder} | cut -d'-' -f1) && ha apps rebuild local_$ADDON_NAME && ha apps restart local_$ADDON_NAME",
+            "presentation": {
+                "reveal": "always",
+                "panel": "new"
+            },
+            "problemMatcher": []
         }
     ]
   }
-  
+
