@@ -1,3 +1,5 @@
+import { initWebsocketService, sendSocket } from "./websocketService";
+
 async function doSupervisorRequest(
   path: string,
   method = "GET",
@@ -61,20 +63,18 @@ async function doHaInternalApiRequest(
 }
 
 async function isSystemMonitorEnabled() {
-  const configEntries = Bun.file("/homeassistant/.storage/core.config_entries");
-  const configEntriesText = await configEntries.text();
-  const configEntriesContent = JSON.parse(configEntriesText);
-  const systemMonitorEntry = configEntriesContent.data.entries.find(
-    (entry) => entry.domain === "systemmonitor",
+  await initWebsocketService();
+  const domainEntries = await sendSocket(
+    "config_entries/get",
+    { "domain": "systemmonitor" }
   );
-  if (systemMonitorEntry && systemMonitorEntry.disabled_by !== null) {
+  if (domainEntries.length !== 1 || domainEntries[0]?.disabled_by !== null) {
     return false;
   }
-
-  const response = await doHaInternalApiRequest(`/template`, "POST", {
+  const entities = await doHaInternalApiRequest(`/template`, "POST", {
     template: `{{ integration_entities('System Monitor') | tojson }}`,
   });
-  return response.length > 0;
+  return (entities && entities.length > 0);
 }
 
 async function getSMStatistics() {
