@@ -1,4 +1,5 @@
 import * as helpers from "./apiHelperService";
+import { initWebsocketService, sendSocket } from "./websocketService";
 
 async function getStatisticHistory(statistic) {
   if (!(await helpers.isSystemMonitorEnabled()))
@@ -29,7 +30,7 @@ async function getStatisticHistory(statistic) {
     }
   );
   var enabledStatistics: string[] = [];
-  try {    
+  try {
     enabledStatistics = typeof getAllEnabledStatistics === "object" ? getAllEnabledStatistics : JSON.parse(getAllEnabledStatistics);
   }
   catch (error) {
@@ -51,13 +52,8 @@ async function getStatisticHistory(statistic) {
 }
 
 async function enableSystemMonitor() {
-  const configEntries = Bun.file("/homeassistant/.storage/core.config_entries");
-  const configEntriesText = await configEntries.text();
-  const configEntriesContent = JSON.parse(configEntriesText);
-  const systemMonitorEntry = configEntriesContent.data.entries.find(
-    (entry) => entry.domain === "systemmonitor"
-  );
-  if (systemMonitorEntry && systemMonitorEntry.disabled_by === null) {
+  const systemMonitorEnabled = await helpers.isSystemMonitorEnabled();
+  if (systemMonitorEnabled) {
     console.debug("System Monitor is already enabled");
     return new Response(
       JSON.stringify({
@@ -66,108 +62,58 @@ async function enableSystemMonitor() {
       })
     );
   }
-  if (systemMonitorEntry) {
-    systemMonitorEntry.disabled_by = null;
-    await Bun.write(
-      "/homeassistant/.storage/core.config_entries",
-      JSON.stringify(configEntriesContent, null, 2)
-    );
-    console.info("System Monitor is now enabled");
-    await helpers.doHaInternalApiRequest("/events/hapro_notification", "POST", {
-      type: "Info",
-      title: "Restarting",
-      message: "System Monitor is now enabled, Home Assistant is restarting",
-    });
-    setTimeout(async () => {
-      try {
-        await fetch("http://supervisor/core/restart", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${Bun.env.SUPERVISOR_TOKEN}`,
-          },
-        });
-      } catch (error) {
-        console.error("Error during system restart:", error);
-      }
-    }, 500);
+  const enableIntegration = await helpers.doHaInternalApiRequest(
+    "/config/config_entries/flow",
+    "POST",
+    { "handler": "systemmonitor", "show_advanced_options": false }
+  );
+  const integrationFlowId = enableIntegration?.flow_id;
+  if (!integrationFlowId) {
+    console.error("System Monitor is not enabled, got a bad response");
     return new Response(
       JSON.stringify({
-        StatusCode: 200,
-        Message: "System Monitor is now enabled, Home Assistant is restarting",
+        StatusCode: 500,
+        Message: "System Monitor is not enabled, got a bad response"
+      })
+    )
+  } else if (enableIntegration?.type === "abort") {
+    await initWebsocketService();
+    await sendSocket(
+      "config_entries/disable",
+      { "entry_id": integrationFlowId, "disabled_by": null }
+    );
+  } else if (enableIntegration?.type !== "form" || enableIntegration?.errors !== null) {
+    console.error("System Monitor is not enabled, error");
+    return new Response(
+      JSON.stringify({
+        StatusCode: 500,
+        Message: "System Monitor is not enabled, error"
       })
     );
   }
-  const dateTime = new Date().toISOString();
-  const systemMonitorConfig = {
-    created_at: dateTime,
-    data: {},
-    discovery_keys: {},
-    disabled_by: null,
-    domain: "systemmonitor",
-    entry_id: crypto
-      .randomUUID()
-      .replace(/-/g, "")
-      .substring(0, 26)
-      .toUpperCase(),
-    minor_version: 3,
-    modified_at: dateTime,
-    options: {},
-    pref_disable_new_entities: false,
-    pref_disable_polling: false,
-    source: "user",
-    subentries: [],
-    title: "System Monitor",
-    unique_id: null,
-    version: 1,
-  };
-  configEntriesContent.data.entries.push(systemMonitorConfig);
-  await Bun.write(
-    "/homeassistant/.storage/core.config_entries",
-    JSON.stringify(configEntriesContent, null, 2)
+  console.debug("System Monitor is now installed");
+  await helpers.doHaInternalApiRequest(
+    `/config/config_entries/flow/${integrationFlowId}`,
+    "POST",
+    {}
   );
-  console.info("System Monitor is now installed");
-  const configEntries2 = Bun.file(
-    "/homeassistant/.storage/core.config_entries"
-  );
-
+  console.info("System Monitor is now enabled");
   await helpers.doHaInternalApiRequest("/events/hapro_notification", "POST", {
     type: "Info",
-    title: "Restarting",
-    message: "System Monitor is now installed, Home Assistant is restarting",
+    title: "Enabled",
+    message: "System Monitor is now enabled",
   });
-  const configEntriesText2 = await configEntries2.text();
-  const configEntriesContent2 = JSON.parse(configEntriesText2);
-  const systemMonitorEntry2 = configEntriesContent2.data.entries.find(
-    (entry) => entry.domain === "systemmonitor"
-  );
-
-  console.warn("Home Assistant is restarting");
-  setTimeout(async () => {
-    try {
-      await fetch("http://supervisor/core/restart", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${Bun.env.SUPERVISOR_TOKEN}`,
-        },
-      });
-    } catch (error) {
-      console.error("Error during system restart:", error);
-    }
-  }, 500);
-
   return new Response(
     JSON.stringify({
       StatusCode: 200,
-      Message: "System Monitor is now installed, Home Assistant is restarting",
+      Message: "System Monitor is now enabled",
     })
   );
 }
 
 async function enableSystemMonitorEntities() {
-  const isSMEnabled = await helpers.isSystemMonitorEnabled();
-  if (!isSMEnabled) {
+  const systemMonitorEnabled = await helpers.isSystemMonitorEnabled();
+  if (!systemMonitorEnabled) {
     console.error("System Monitor is disabled, cannot enable entities");
     return new Response(
       JSON.stringify({
@@ -176,48 +122,36 @@ async function enableSystemMonitorEntities() {
       })
     );
   }
-  const entityEntries = Bun.file(
-    "/homeassistant/.storage/core.entity_registry"
+  await initWebsocketService();
+  const entitiesList = await sendSocket(
+    "config/entity_registry/list",
+    {}
   );
-  const entityEntriesText = await entityEntries.text();
-  const entityEntriesContent = JSON.parse(entityEntriesText);
+  const entitiesDisabled = entitiesList.filter(
+    (entry) => entry?.platform === "systemmonitor" && entry?.disabled_by !== null
+  );
   const statistics = await helpers.getSMStatistics();
   for (const key in statistics) {
     if (statistics[key] !== null) {
-      const entity = entityEntriesContent.data.entities.find(
+      const entity = entitiesDisabled.find(
         (entry) => entry.entity_id === statistics[key]
       );
       if (entity) {
-        entity.disabled_by = null;
-        entity.hidden_by = null;
+        await sendSocket(
+          "config/entity_registry/update",
+          {
+            entity_id: entity.entity_id,
+            disabled_by: null
+          }
+        );
       }
     }
   }
-  await Bun.write(
-    "/homeassistant/.storage/core.entity_registry",
-    JSON.stringify(entityEntriesContent, null, 2)
-  );
-  console.info("Enabled System Monitor entities");
-
-  console.warn("Home Assistant is restarting");
-  setTimeout(async () => {
-    try {
-      await fetch("http://supervisor/core/restart", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${Bun.env.SUPERVISOR_TOKEN}`,
-        },
-      });
-    } catch (error) {
-      console.error("Error during system restart:", error);
-    }
-  }, 500);
-
+  console.info("Enabled System Monitor Entities");
   return new Response(
     JSON.stringify({
       StatusCode: 200,
-      Message: "Enabled System Monitor entities, Home Assistant is restarting",
+      Message: "Enabled System Monitor entities",
     })
   );
 }
