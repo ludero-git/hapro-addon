@@ -1,5 +1,9 @@
 <!-- https://developers.home-assistant.io/docs/add-ons/presentation#keeping-a-changelog -->
 
+## v1.4.2 10/04/2026
+### Fixed
+- External libs are now included in the ghcr image instead of having to be resolved during runtime to avoid customer firewall issues
+
 ## v1.4.1 19/03/2026
 ### Fixed
 - Repo cleanup

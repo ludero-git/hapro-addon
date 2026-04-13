@@ -1,0 +1,18 @@
+{
+  "name": "hapro-webapi",
+  "version": "1.0.0",
+  "description": "Home Assistant Pro WebAPI server",
+  "type": "module",
+  "main": "webapi.ts",
+  "scripts": {
+    "dev": "bun --watch webapi.ts",
+    "start": "bun webapi.ts"
+  },
+  "dependencies": {
+    "unzipper": "^0.12.3"
+  },
+  "devDependencies": {},
+  "engines": {
+    "bun": ">=1.0.0"
+  }
+}

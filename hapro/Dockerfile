@@ -12,3 +12,6 @@ COPY --from=bun  /usr/local/bin/bun /usr/bin/bun
 COPY --from=rathole /app/rathole /usr/bin/rathole
 COPY --from=caddy /usr/bin/caddy /usr/bin/caddy
 COPY rootfs /
+
+WORKDIR /usr/src
+RUN bun install

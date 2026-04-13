@@ -1,6 +1,7 @@
 {
   "name": "Devcontainer for HaPro",
-  "image": "ghcr.io/home-assistant/devcontainer:2-addons",
+  "image": "ghcr.io/home-assistant/devcontainer:4-apps",
+  "overrideCommand": false,
   "appPort": ["7123:8123", "7357:4357"],
   "postStartCommand": "bash devcontainer_bootstrap",
   "runArgs": ["-e", "GIT_EDITOR=code --wait", "--privileged"],
@@ -28,7 +29,9 @@
   },
   "mounts": [
     "type=volume,source=ha_docker_data,target=/var/lib/docker",
-    "type=volume,source=ha_supervisor_data,target=/mnt/supervisor"
+    "type=volume,source=ha_supervisor_data,target=/mnt/supervisor",
+    "type=volume,target=/var/lib/containerd",
+    "type=tmpfs,target=/tmp"
   ],
-  "remoteUser": "root"
+  "remoteUser": "vscode"
 }

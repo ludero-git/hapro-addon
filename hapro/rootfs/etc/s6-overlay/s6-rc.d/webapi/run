@@ -13,7 +13,7 @@ if bashio::config.true 'debug'; then
     bashio::log.info "WEBAPI: Debug mode enabled"
 fi
 
-bun run /usr/src/webapi.ts 2>&1 | while read -r line; do
+bun --no-install run /usr/src/webapi.ts 2>&1 | while read -r line; do
     case "$line" in
         *"[DEBUG]"*) bashio::log.notice "WEBAPI: ${line#*] }" ;;
         *"[INFO]"*) bashio::log.info "WEBAPI: ${line#*] }" ;;
