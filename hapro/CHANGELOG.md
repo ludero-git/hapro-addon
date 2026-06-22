@@ -1,3 +1,7 @@
+
+## v1.5.1 22/06/2026
+### Added
+- Update integration to v0.1.0
 ## v1.5.0 22/06/2026
 ### Added
 - Support for configuring the path for storing monitoring file distribution
