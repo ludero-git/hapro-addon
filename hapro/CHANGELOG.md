@@ -261,3 +261,6 @@ HA User management
 - Caddy has been added including:
     - Dynamic Caddyfile via env vars
     - A reverse proxy to capture hapro api requests and pass the rest to home assistant
+## vv1.5.1 22/06/2026
+### Added
+- Update integration to v0.1.0
