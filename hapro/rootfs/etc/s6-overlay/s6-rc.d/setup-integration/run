@@ -1,6 +1,9 @@
 #!/usr/bin/with-contenv bashio
 bashio::log.info "SETUP-INTEGRATION: Starting Integration Setup"
 
+# Load request helper functions
+source /usr/src/request.sh
+
 INTEGRATION_SOURCE="/opt/ludero_integration/custom_components/ludero_virtual_grid"
 HA_CUSTOM_COMPONENTS="/config/custom_components"
 INTEGRATION_DEST="$HA_CUSTOM_COMPONENTS/ludero_virtual_grid"
