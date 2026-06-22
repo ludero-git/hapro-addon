@@ -95,9 +95,9 @@ jobs:
         run: |
           VERSION_FILE="./${{ matrix.addon }}/integration_version.txt"
           if [ -f "$VERSION_FILE" ]; then
-            VERSION=$(cat $VERSION_FILE | tr -d '\n')
+            VERSION=$(cat $VERSION_FILE | tr -d '\n' | sed 's/^v//')
             echo "Fetching version $VERSION"
-            gh release download $VERSION -R ludero-git/virtual-grid-integration --pattern '*.zip' -D ./tmp_integration
+            gh release download v$VERSION -R ludero-git/virtual-grid-integration --pattern '*.zip' -D ./tmp_integration
           else
             echo "No version file found, fetching latest..."
             gh release download -R ludero-git/virtual-grid-integration --pattern '*.zip' -D ./tmp_integration

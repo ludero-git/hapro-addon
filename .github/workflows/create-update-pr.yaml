@@ -25,6 +25,7 @@ jobs:
         uses: mikefarah/yq@v4.53.3
 
       - name: Bump Versions and Update Changelog
+        id: bump
         run: |
           INTEGRATION_VERSION="${{ github.event.client_payload.version }}"
           ADDON_DIR="hapro"
@@ -39,12 +40,15 @@ jobs:
           yq e -i ".version = \"$NEW_ADDON_VERSION\"" $ADDON_DIR/config.yaml
 
           TODAY=$(date +"%d/%m/%Y")
+          TEMP_FILE=$(mktemp)
           {
             echo ""
-            echo "## v$NEW_ADDON_VERSION $TODAY"
+            echo "## $NEW_ADDON_VERSION $TODAY"
             echo "### Added"
             echo "- Update integration to v$INTEGRATION_VERSION"
-          } >> $ADDON_DIR/CHANGELOG.md
+          } > "$TEMP_FILE"
+          cat $ADDON_DIR/CHANGELOG.md >> "$TEMP_FILE"
+          mv "$TEMP_FILE" $ADDON_DIR/CHANGELOG.md
           echo "NEW_ADDON_VERSION=$NEW_ADDON_VERSION" >> $GITHUB_OUTPUT
 
       - name: Create Pull Request
