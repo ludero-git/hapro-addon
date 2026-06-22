@@ -1,14 +1,15 @@
 {
   "name": "Devcontainer for HaPro",
-  "image": "ghcr.io/home-assistant/devcontainer:4-apps",
+  "image": "ghcr.io/home-assistant/devcontainer:5-apps",
   "overrideCommand": false,
   "appPort": ["7123:8123", "7357:4357"],
   "postStartCommand": "bash devcontainer_bootstrap",
   "runArgs": ["-e", "GIT_EDITOR=code --wait", "--privileged"],
-  "workspaceFolder": "/mnt/supervisor/addons/local/${localWorkspaceFolderBasename}",
+  "workspaceFolder": "/mnt/supervisor/apps/local/${localWorkspaceFolderBasename}",
   "workspaceMount": "source=${localWorkspaceFolder},target=${containerWorkspaceFolder},type=bind,consistency=cached",
   "containerEnv": {
-    "WORKSPACE_DIRECTORY": "${containerWorkspaceFolder}"
+    "WORKSPACE_DIRECTORY": "${containerWorkspaceFolder}",
+    "SUPERVISOR_CHANNEL": "beta"
   },
   "customizations": {
     "vscode": {
@@ -28,10 +29,11 @@
     }
   },
   "mounts": [
-    "type=volume,source=ha_docker_data,target=/var/lib/docker",
-    "type=volume,source=ha_supervisor_data,target=/mnt/supervisor",
+    "type=volume,source=ha_docker_addon,target=/var/lib/docker",
+    "type=volume,source=ha_supervisor_addon,target=/mnt/supervisor",
     "type=volume,target=/var/lib/containerd",
     "type=tmpfs,target=/tmp"
   ],
-  "remoteUser": "vscode"
+  "remoteUser": "root",
+  "containerUser": "root"
 }

@@ -1,0 +1,53 @@
+on:
+  repository_dispatch:
+    types: [integration-release]
+  workflow_dispatch: 
+    inputs:
+      integration_version:
+        description: 'The target integration version (e.g. 1.2.3)'
+        required: true
+        type: string
+
+        name: Auto-Update Integration PR
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  create-pr:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Setup yq
+        uses: mikefarah/yq@v4.53.3
+
+      - name: Bump Versions and Update Changelog
+        run: |
+          INTEGRATION_VERSION="${{ github.event.client_payload.version }}"
+          ADDON_DIR="hapro"
+          echo "$INTEGRATION_VERSION" > $ADDON_DIR/integration_version.txt
+
+          CURRENT_VERSION=$(yq e '.version' $ADDON_DIR/config.yaml)
+          IFS='.' read -ra VER_PARTS <<< "$CURRENT_VERSION"
+          PATCH=$((VER_PARTS[2] + 1))
+          NEW_ADDON_VERSION="${VER_PARTS[0]}.${VER_PARTS[1]}.$PATCH"
+
+          echo "Bumping add-on version from $CURRENT_VERSION to $NEW_ADDON_VERSION"
+          yq e -i ".version = \"$NEW_ADDON_VERSION\"" $ADDON_DIR/config.yaml
+          yq e -i ".\"## $NEW_ADDON_VERSION\" = [\"Update integration to v$INTEGRATION_VERSION\"]" $ADDON_DIR/CHANGELOG.yaml
+
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v8
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "chore: update integration to v${{ github.event.client_payload.version }}"
+          branch: "auto-update/integration-${{ github.event.client_payload.version }}"
+          title: "Update integration to v${{ github.event.client_payload.version }}"
+          body: |
+            Automated PR triggered by a new release in the integration repository.
+            - Integration updated to **v${{ github.event.client_payload.version }}**
+            - Add-on version bumped to **${{ steps.bump.outputs.NEW_ADDON_VERSION }}** (in config and changelog)
+          labels: "automated pr, enhancement"

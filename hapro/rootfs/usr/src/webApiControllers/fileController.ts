@@ -5,11 +5,12 @@ import * as unzipper from 'unzipper';
 import { Buffer } from 'buffer';
 
 async function getCurrentFileVersion() {
-  const versionFilePath = path.join('/homeassistant/hapro-files', 'version.json');
+  const configFilesPath = Bun.env.HAPRO_CONFIG_FILES_PATH || '/homeassistant/hapro-files';
+  const versionFilePath = path.join(configFilesPath, 'version.json');
   try {
     if (fs.existsSync(versionFilePath)) {
       const versionData = await fs.promises.readFile(versionFilePath, 'utf-8');
-      return new Response(JSON.stringify({ StatusCode: 200, data: JSON.parse(versionData)}));
+      return new Response(JSON.stringify({ StatusCode: 200, data: JSON.parse(versionData) }));
 
     } else {
       console.log('Version file does not exist.');
@@ -22,7 +23,8 @@ async function getCurrentFileVersion() {
 }
 
 async function updateFile(req: Request) {
-  const haproFilesPath = path.join('/homeassistant/hapro-files');
+  const configFilesPath = Bun.env.HAPRO_CONFIG_FILES_PATH || '/homeassistant/hapro-files';
+  const haproFilesPath = path.join(configFilesPath);
   const zipFilePath = path.join(haproFilesPath, 'update.zip');
   const backupFile = await req.arrayBuffer();
   const blob = new Blob([backupFile], { type: "application/zip" });
@@ -49,9 +51,9 @@ async function updateFile(req: Request) {
       const filePath = path.join(haproFilesPath, file);
       const stat = await fs.promises.stat(filePath);
       if (stat.isDirectory()) {
-      await fs.promises.rmdir(filePath, { recursive: true });
+        await fs.promises.rmdir(filePath, { recursive: true });
       } else {
-      await fs.promises.unlink(filePath);
+        await fs.promises.unlink(filePath);
       }
     }
 
@@ -69,10 +71,34 @@ async function updateFile(req: Request) {
     await fs.promises.writeFile(versionFilePath, JSON.stringify(versionData, null, 2), 'utf-8');
 
     console.log('Files updated successfully.');
+    await sendFileUpdateEvent(newVersion, versionData.partner_name);
     return new Response(JSON.stringify({ StatusCode: 200, Message: 'Files updated successfully.' }));
   } catch (error) {
     console.error('Error updating files:', error);
     return new Response(JSON.stringify({ StatusCode: 500, Message: 'Internal Server Error' }));
+  }
+}
+
+async function sendFileUpdateEvent(version: string, partnerName: string) {
+  try {
+    const template = `
+  {% set event_data = {
+    version: '${version}',
+    partner_name: '${partnerName}'
+  } %}
+  {{ event_data | tojson }
+   `
+    const response = await helpers.doHaInternalApiRequest(`/events/hapro-files-update`, "POST", {
+      template: template,
+    });
+    if (response?.message?.includes('Event') && response?.message?.includes('fired')) {
+      console.log('HA file updated event triggered successfully with version:', version, 'and partner name:', partnerName);
+    } else {
+      console.error('Unexpected response from HA event trigger:', response);
+    }
+  }
+  catch (error) {
+    console.error('Error sending file update event:', error instanceof Error ? error.message : error);
   }
 }
 

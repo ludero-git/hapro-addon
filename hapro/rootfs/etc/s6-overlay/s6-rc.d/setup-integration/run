@@ -1,0 +1,23 @@
+#!/usr/bin/with-contenv bashio
+bashio::log.info "SETUP-INTEGRATION: Starting Integration Setup"
+
+INTEGRATION_SOURCE="/opt/ludero_integration/custom_components/ludero_virtual_grid"
+HA_CUSTOM_COMPONENTS="/config/custom_components"
+INTEGRATION_DEST="$HA_CUSTOM_COMPONENTS/ludero_virtual_grid"
+
+if [ ! -d "$INTEGRATION_SOURCE" ]; then
+    bashio::log.error "SETUP-INTEGRATION: Integration source files not found at $INTEGRATION_SOURCE."
+    exit 0
+fi
+mkdir -p "$HA_CUSTOM_COMPONENTS"
+
+if [ -d "$INTEGRATION_DEST" ]; then
+    bashio::log.info "SETUP-INTEGRATION: Found existing Ludero Virtual Grid installation. Removing it for clean update..."
+    rm -rf "$INTEGRATION_DEST"
+fi
+bashio::log.info "SETUP-INTEGRATION: Copying Ludero Virtual Grid integration to Home Assistant..."
+cp -R "$INTEGRATION_SOURCE" "$INTEGRATION_DEST"
+
+bashio::log.info "SETUP-INTEGRATION: Integration installed successfully!"
+bashio::log.warning "SETUP-INTEGRATION: You must fully restart Home Assistant Core for it to recognize the new integration version."
+doHaInternalApiRequest "services/notify/persistent_notification" "POST" "{\"title\":\"HaPro requires restart\",\"message\":\"Please restart Home Assistant Core to apply the new integration version.\",\"data\":{\"notification_id\":\"hapro_restart\"}}"

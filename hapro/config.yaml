@@ -1,7 +1,7 @@
 name: "hapro"
 description: "Professional manager for multiple HA installations."
 slug: "hapro"
-version: "v1.4.2"
+version: "v1.5.0"
 image: ghcr.io/ludero-git/hapro-addon-{arch}
 url: "https://github.com/ludero-git/hapro-addon/tree/main/hapro"
 init: false
@@ -20,8 +20,10 @@ options:
   apiUrl: "https://api.ludero.nl"
   caddy_port: 8099
   debug: false
+  filespath: "/homeassistant/ludero-package-templates"
 schema:
   uuid: "match(^$|^[0-9a-fA-F]{32}$)"
   apiUrl: str
   caddy_port: int?
   debug: bool?
+  filespath: str?

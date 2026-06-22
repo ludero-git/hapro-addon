@@ -1,0 +1,47 @@
+name: PR Version Validator
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'hapro/config.yaml'
+
+jobs:
+  validate-version:
+    runs-on: ubuntu-latest
+    name: Check Semantic Version
+    steps:
+      - name: Checkout PR branch
+        uses: actions/checkout@v6
+        with:
+          path: pr_branch
+
+      - name: Checkout Main branch
+        uses: actions/checkout@v6
+        with:
+          ref: main
+          path: main_branch
+
+      - name: Setup yq
+        uses: mikefarah/yq@v4.53.3
+
+      - name: Compare Versions
+        run: |
+          ADDON_DIR="hapro"
+          MAIN_VERSION=$(yq e '.version' main_branch/$ADDON_DIR/config.yaml)
+          PR_VERSION=$(yq e '.version' pr_branch/$ADDON_DIR/config.yaml)
+          
+          echo "Main branch version: $MAIN_VERSION"
+          echo "PR branch version: $PR_VERSION"
+          HIGHEST=$(printf "%s\n%s" "$MAIN_VERSION" "$PR_VERSION" | sort -V | tail -n1)
+          
+          if [ "$MAIN_VERSION" == "$PR_VERSION" ]; then
+            echo "❌ ERROR: PR version ($PR_VERSION) is equal to Main version ($MAIN_VERSION). You must bump the version."
+            exit 1
+          elif [ "$HIGHEST" != "$PR_VERSION" ]; then
+            echo "❌ ERROR: PR version ($PR_VERSION) is older than Main version ($MAIN_VERSION). The PR is stale."
+            exit 1
+          else
+            echo "✅ SUCCESS: PR version ($PR_VERSION) is valid and newer than Main ($MAIN_VERSION)."
+          fi

@@ -1,5 +1,10 @@
 <!-- https://developers.home-assistant.io/docs/add-ons/presentation#keeping-a-changelog -->
 
+## v1.5.0 22/06/2026
+### Added
+- Support for configuring the path for storing monitoring file distribution
+- Support for installing ludero integration
+
 ## v1.4.2 10/04/2026
 ### Fixed
 - External libs are now included in the ghcr image instead of having to be resolved during runtime to avoid customer firewall issues

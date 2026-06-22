@@ -2,7 +2,7 @@ name: Builder
 
 env:
   BUILD_ARGS: "--test"
-  MONITORED_FILES: "build.yaml config.yaml Dockerfile rootfs"
+  MONITORED_FILES: "build.yaml config.yaml Dockerfile rootfs integration_version.txt"
 
 on:
   push:
@@ -88,6 +88,23 @@ jobs:
 
       - name: Check out repository
         uses: actions/checkout@v6.0.2
+
+      - name: Fetch Integration Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.INTEGRATION_REPO_PAT }}
+        run: |
+          VERSION_FILE="./${{ matrix.addon }}/integration_version.txt"
+          if [ -f "$VERSION_FILE" ]; then
+            VERSION=$(cat $VERSION_FILE | tr -d '\n')
+            echo "Fetching version $VERSION"
+            gh release download $VERSION -R ludero-git/virtual-grid-integration --pattern '*.zip' -D ./tmp_integration
+          else
+            echo "No version file found, fetching latest..."
+            gh release download -R ludero-git/virtual-grid-integration --pattern '*.zip' -D ./tmp_integration
+          fi
+          mkdir -p ./${{ matrix.addon }}/rootfs/opt/ludero_integration
+          unzip -o ./tmp_integration/*.zip -d ./${{ matrix.addon }}/rootfs/opt/ludero_integration/
+          rm -rf ./tmp_integration
 
       - name: Get information
         id: info

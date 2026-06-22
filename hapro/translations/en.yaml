@@ -8,3 +8,9 @@ configuration:
   debug:
     name: Debug mode
     description: Enable debug mode to see more detailed logs. This will decrease performance significantly.
+  caddy_port:
+    name: Caddy port
+    description: The port on which Caddy will run. Make sure this port is not in use by another application.
+  filespath:
+    name: Files path
+    description: The path where files from the monitoring file distribution will be stored.

@@ -4,7 +4,7 @@
         {
             "label": "Start Home Assistant",
             "type": "shell",
-            "command": "supervisor_run",
+            "command": "sudo systemctl restart docker && sudo mkdir -p /run/supervisor && sudo supervisor_run",
             "group": {
                 "kind": "test",
                 "isDefault": true

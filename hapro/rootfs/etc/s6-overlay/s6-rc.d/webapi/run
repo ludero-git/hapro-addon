@@ -6,6 +6,8 @@ HaproApi=$(bashio::config 'apiUrl')
 export HAPRO_API_URL="$HaproApi"
 Uuid=$(bashio::config 'uuid')
 export HAPRO_UUID="$Uuid"
+FilesPath=$(bashio::config 'filespath')
+export HAPRO_CONFIG_FILES_PATH="$FilesPath"
 
 if bashio::config.true 'debug'; then
     export BUN_DEBUG=1
