@@ -37,7 +37,15 @@ jobs:
 
           echo "Bumping add-on version from $CURRENT_VERSION to $NEW_ADDON_VERSION"
           yq e -i ".version = \"$NEW_ADDON_VERSION\"" $ADDON_DIR/config.yaml
-          yq e -i ".\"## $NEW_ADDON_VERSION\" = [\"Update integration to v$INTEGRATION_VERSION\"]" $ADDON_DIR/CHANGELOG.md
+
+          TODAY=$(date +"%d/%m/%Y")
+          {
+            echo ""
+            echo "## v$NEW_ADDON_VERSION $TODAY"
+            echo "### Added"
+            echo "- Update integration to v$INTEGRATION_VERSION"
+          } >> $ADDON_DIR/CHANGELOG.md
+          echo "NEW_ADDON_VERSION=$NEW_ADDON_VERSION" >> $GITHUB_OUTPUT
 
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v8
