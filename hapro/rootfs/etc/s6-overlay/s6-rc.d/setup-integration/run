@@ -5,11 +5,22 @@ bashio::log.info "SETUP-INTEGRATION: Starting Integration Setup"
 source /usr/src/request.sh
 
 INTEGRATION_SOURCE="/opt/ludero_integration/custom_components/ludero_virtual_grid"
-HA_CUSTOM_COMPONENTS="/config/custom_components"
+HA_CUSTOM_COMPONENTS="/homeassistant/custom_components"
 INTEGRATION_DEST="$HA_CUSTOM_COMPONENTS/ludero_virtual_grid"
 
 if [ ! -d "$INTEGRATION_SOURCE" ]; then
     bashio::log.error "SETUP-INTEGRATION: Integration source files not found at $INTEGRATION_SOURCE."
+    exit 0
+fi
+SOURCE_VERSION=$(sed -n 's/.*"version":[[:space:]]*"\([^"]*\)".*/\1/p' "$INTEGRATION_SOURCE/manifest.json" | head -n 1)
+DEST_VERSION=""
+
+if [ -f "$INTEGRATION_DEST/manifest.json" ]; then
+    DEST_VERSION=$(sed -n 's/.*"version":[[:space:]]*"\([^"]*\)".*/\1/p' "$INTEGRATION_DEST/manifest.json" | head -n 1)
+fi
+
+if [ -n "$SOURCE_VERSION" ] && [ "$SOURCE_VERSION" = "$DEST_VERSION" ]; then
+    bashio::log.info "SETUP-INTEGRATION: Ludero Virtual Grid is already up to date ($SOURCE_VERSION)."
     exit 0
 fi
 mkdir -p "$HA_CUSTOM_COMPONENTS"

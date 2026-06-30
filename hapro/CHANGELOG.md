@@ -1,3 +1,10 @@
+## v1.5.2 30/06/2026
+### Added
+- Added a version check to avoid notifying about unnecessary restarts when the integration version is already up to date
+
+### Fixed
+- Fixed the path for the ludero integration to be installed in the correct location for HA on newer versions to recognize it
+
 ## v1.5.1 22/06/2026
 ### Added
 - Fixed an build error
