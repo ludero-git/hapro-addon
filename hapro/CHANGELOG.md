@@ -1,3 +1,7 @@
+
+## v1.5.3 17/07/2026
+### Added
+- Update integration to v0.1.1
 ## v1.5.2 30/06/2026
 ### Added
 - Added a version check to avoid notifying about unnecessary restarts when the integration version is already up to date
