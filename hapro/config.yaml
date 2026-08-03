@@ -5,7 +5,9 @@ version: "v1.5.2"
 image: ghcr.io/ludero-git/hapro-addon-{arch}
 url: "https://github.com/ludero-git/hapro-addon/tree/main/hapro"
 init: false
+startup: services
 host_network: true
+docker_api: true
 homeassistant_api: true
 hassio_api: true
 hassio_role: "manager"
@@ -15,6 +17,10 @@ arch:
 map:
   - homeassistant_config:rw
   - backup:rw
+  - ssl:rw
+  - share:rw
+  - media:rw
+  - addons:rw
 options:
   uuid: ""
   apiUrl: "https://api.ludero.nl"
