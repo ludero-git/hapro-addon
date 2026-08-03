@@ -11,6 +11,7 @@ import {
 const BACKUP_DIR = "/backup";
 const HOMEASSISTANT_BACKUP_FILE = "/homeassistant/.storage/backup";
 const BACKUP_MANAGER_ENTITY_ID = "sensor.backup_backup_manager_state";
+const PENDING_BACKUP_TIMEOUT_MS = 15 * 60 * 1000; // 15 minutes
 
 type StateChangedEvent = {
   entity_id?: string;
@@ -76,13 +77,17 @@ async function notifyBackupComplete() {
       console.error("Cannot send notification: Missing UUID or API URL.");
       return;
     }
-    await fetch(`${apiUrl.replace(/\/$/, "")}/api/backup/${uuid}/synchronize`, {
+    const response = await fetch(`${apiUrl.replace(/\/$/, "")}/api/backup/${uuid}/synchronize`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
     });
-    console.debug("Backup completion notification sent.");
+    if (response.ok) {
+      console.debug("Backup completion notification sent.");
+    } else {
+      console.warn(`Backup completion notification responded with status ${response.status}`);
+    }
   } catch (error) {
     console.error("Failed to send notification:", error);
   }
@@ -99,6 +104,7 @@ async function subscribeToBackupStateChanged() {
 
 let pendingBackupFile: string | null = null;
 let removePendingStateListener: (() => void) | null = null;
+let pendingBackupTimeoutId: ReturnType<typeof setTimeout> | null = null;
 
 function isBackupTransitionToIdle(event: StateChangedEvent): boolean {
   return (
@@ -106,6 +112,16 @@ function isBackupTransitionToIdle(event: StateChangedEvent): boolean {
     event.old_state?.state === "create_backup" &&
     event.new_state?.state === "idle"
   );
+}
+
+function clearPendingBackupState() {
+  if (pendingBackupTimeoutId !== null) {
+    clearTimeout(pendingBackupTimeoutId);
+    pendingBackupTimeoutId = null;
+  }
+  removePendingStateListener?.();
+  removePendingStateListener = null;
+  pendingBackupFile = null;
 }
 
 async function handleBackupStateChanged(eventData: StateChangedEvent) {
@@ -122,9 +138,7 @@ async function handleBackupStateChanged(eventData: StateChangedEvent) {
 
   await notifyBackupComplete();
   previousFiles.add(fileName);
-  pendingBackupFile = null;
-  removePendingStateListener?.();
-  removePendingStateListener = null;
+  clearPendingBackupState();
 }
 
 let lastBackupPassword: string | null = null;
@@ -143,18 +157,18 @@ async function getBackupPassword(): Promise<string | null> {
 
 async function watchHomeAssistantBackupFile() {
   console.debug(`Watching file: ${HOMEASSISTANT_BACKUP_FILE}`);
-  
+
   if (!existsSync(HOMEASSISTANT_BACKUP_FILE)) {
     console.warn(`File ${HOMEASSISTANT_BACKUP_FILE} does not exist yet. Will start watching once it exists.`);
   } else {
     lastBackupPassword = await getBackupPassword();
     console.debug(`Initial backup password loaded`);
   }
-  
+
   watchFile(HOMEASSISTANT_BACKUP_FILE, { interval: 2000 }, async (curr, prev) => {
     if (curr.mtime.getTime() !== prev.mtime.getTime()) {
       console.debug(`File ${HOMEASSISTANT_BACKUP_FILE} modified at ${curr.mtime}`);
-      
+
       const currentPassword = await getBackupPassword();
       if (currentPassword !== lastBackupPassword) {
         console.log(`Backup password changed, notifying API`);
@@ -165,7 +179,7 @@ async function watchHomeAssistantBackupFile() {
       }
     }
   });
-  
+
   console.log(`Now watching ${HOMEASSISTANT_BACKUP_FILE} for password changes (polling every 2s)`);
 }
 
@@ -185,25 +199,52 @@ export async function watchBackupDirectory() {
   watch(BACKUP_DIR, async () => {
     const files = await getFiles(BACKUP_DIR);
     const currentFileCount = files.length;
+
     if (currentFileCount !== lastFileCount) {
-      console.debug(
-        `File count changed from ${lastFileCount} to ${currentFileCount}`,
-      );
+      const previousCount = lastFileCount;
       lastFileCount = currentFileCount;
-      const newFiles = files.filter((file) => !previousFiles.has(file));
-      const newFile = newFiles[0];
-      if (newFile) {
-        console.debug(`New file detected: ${newFile}`);
-        if (newFile.endsWith(".tar")) {
-          pendingBackupFile = newFile;
-          removePendingStateListener?.();
-          removePendingStateListener = subscribeToEvent(
-            "state_changed",
-            handleBackupStateChanged,
-          );
-          console.debug(
-            `Waiting for ${BACKUP_MANAGER_ENTITY_ID} transition to idle for ${newFile}.`,
-          );
+      const currentSet = new Set(files);
+      for (const f of previousFiles) {
+        if (!currentSet.has(f)) {
+          previousFiles.delete(f);
+        }
+      }
+
+      if (currentFileCount > (previousCount ?? 0)) {
+        console.debug(
+          `File count changed from ${previousCount} to ${currentFileCount}`,
+        );
+        const newFiles = files.filter((file) => !previousFiles.has(file));
+        const newFile = newFiles[0];
+        if (newFile) {
+          console.debug(`New file detected: ${newFile}`);
+          if (newFile.endsWith(".tar")) {
+            if (pendingBackupFile) {
+              console.warn(
+                `New backup ${newFile} detected while ${pendingBackupFile} was still pending. Discarding old pending state.`,
+              );
+              clearPendingBackupState();
+            }
+
+            pendingBackupFile = newFile;
+            removePendingStateListener = subscribeToEvent(
+              "state_changed",
+              handleBackupStateChanged,
+            );
+
+            pendingBackupTimeoutId = setTimeout(() => {
+              if (pendingBackupFile === newFile) {
+                console.warn(
+                  `Pending backup ${newFile} timed out after ${PENDING_BACKUP_TIMEOUT_MS / 1000}s without a confirmed idle transition. Cleaning up listener.`,
+                );
+                clearPendingBackupState();
+              }
+            }, PENDING_BACKUP_TIMEOUT_MS);
+
+            console.debug(
+              `Waiting for ${BACKUP_MANAGER_ENTITY_ID} transition to idle for ${newFile}.`,
+            );
+          }
         }
       }
     }

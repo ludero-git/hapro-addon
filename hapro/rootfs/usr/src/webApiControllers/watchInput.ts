@@ -1,6 +1,5 @@
 import { getApiUrl, getUuid } from "./apiHelperService";
 import { initWebsocketService, sendSocket, subscribeToEvent, addConnectListener } from "./websocketService";
-import clientToml from "/usr/bin/client.toml";
 
 async function subscribeToHaproNotifications() {
   try {
@@ -51,8 +50,21 @@ async function handleNotification(notification) {
   }
 }
 
-let cachedToken = null;
-let tokenExpiry = null;
+let cachedToken: any = null;
+let tokenExpiry: number | null = null;
+
+async function getRemotePublicKey(): Promise<string | null> {
+  try {
+    const file = Bun.file("/usr/bin/client.toml");
+    if (!(await file.exists())) return null;
+    const text = await file.text();
+    const match = text.match(/remote_public_key\s*=\s*"([^"]+)"/);
+    return match ? match[1] : null;
+  } catch (error) {
+    console.error("Error reading client.toml for remote_public_key:", error);
+    return null;
+  }
+}
 
 async function fetchToken() {
   if (cachedToken && tokenExpiry && tokenExpiry > Date.now()) {
@@ -64,25 +76,42 @@ async function fetchToken() {
     return null;
   }
 
-  const key = clientToml.client.transport.noise.remote_public_key;
-  const response = await fetch(`${apiUrl.replace(/\/$/, "")}/connect/token`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/x-www-form-urlencoded",
-    },
-    body: new URLSearchParams({
-      grant_type: "client_credentials",
-      client_id: "hapro_addon",
-      client_secret: key,
-      scopes: "hapro_addon",
-    }).toString(),
-  });
-  const data = await response.json();
+  const key = await getRemotePublicKey();
+  if (!key) {
+    console.error("Cannot fetch token: remote_public_key not found in client.toml.");
+    return null;
+  }
 
-  cachedToken = data;
-  tokenExpiry = Date.now() + data.expires_in * 1000;
+  try {
+    const response = await fetch(`${apiUrl.replace(/\/$/, "")}/connect/token`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      body: new URLSearchParams({
+        grant_type: "client_credentials",
+        client_id: "hapro_addon",
+        client_secret: key,
+        scopes: "hapro_addon",
+      }).toString(),
+    });
 
-  return data;
+    if (!response.ok) {
+      console.error(`Fetch token request failed with status ${response.status}`);
+      return null;
+    }
+
+    const data: any = await response.json();
+    if (data && data.access_token && data.expires_in) {
+      cachedToken = data;
+      tokenExpiry = Date.now() + data.expires_in * 1000;
+      return data;
+    }
+    return null;
+  } catch (error) {
+    console.error("Error fetching token from remote server:", error);
+    return null;
+  }
 }
 
 export { watchNotifications };

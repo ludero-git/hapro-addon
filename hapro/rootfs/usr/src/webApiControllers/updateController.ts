@@ -27,7 +27,7 @@ async function getUpdates() {
     const fileUpdateStream = await getCurrentFileVersion();
     const fileUpdate = await fileUpdateStream.json();
     var listOfUpdates: any[] = [];
-    try {      
+    try {
       listOfUpdates = typeof response === "object" ? response : JSON.parse(response);
     }
     catch (error) {
@@ -96,12 +96,11 @@ async function performUpdate(updateIdentifier) {
   const idleTimeout = 3000;
 
   async function withTimeout(promise, timeout) {
-    return Promise.race([
-      promise,
-      new Promise((_, reject) =>
-        setTimeout(() => reject(new Error("Request timed out")), timeout)
-      ),
-    ]);
+    let timerId: ReturnType<typeof setTimeout>;
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      timerId = setTimeout(() => reject(new Error("Request timed out")), timeout);
+    });
+    return Promise.race([promise, timeoutPromise]).finally(() => clearTimeout(timerId!));
   }
   try {
     const updateResult = await withTimeout(
@@ -173,4 +172,4 @@ async function clearSkippedUpdate(updateIdentifier) {
   }
 }
 
-export {getUpdates, getIconOfUpdate, performUpdate, skipUpdate, clearSkippedUpdate};
+export { getUpdates, getIconOfUpdate, performUpdate, skipUpdate, clearSkippedUpdate };

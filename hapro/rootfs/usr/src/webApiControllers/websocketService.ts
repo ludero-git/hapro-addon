@@ -1,8 +1,10 @@
 // This service is responsible for handling the ws connection to the supervisor
 
+const SEND_TIMEOUT_MS = 30_000;
+
 let socket: WebSocket | null = null;
 let messageId = 1;
-const pendingMessages = new Map<number, { resolve: (result: any) => void; reject: (err: Error) => void }>();
+const pendingMessages = new Map<number, { resolve: (result: any) => void; reject: (err: Error) => void; timer: ReturnType<typeof setTimeout> }>();
 const eventSubscriptions = new Map<string, Set<(data: any) => void>>();
 const connectListeners = new Set<() => void>();
 let initPromise: Promise<void> | null = null;
@@ -38,6 +40,7 @@ async function initWebsocketService(): Promise<void> {
       } else if (data.type === "result") {
         const pending = pendingMessages.get(data.id);
         if (pending) {
+          clearTimeout(pending.timer);
           pendingMessages.delete(data.id);
           if (data.success) {
             pending.resolve(data.result);
@@ -56,7 +59,10 @@ async function initWebsocketService(): Promise<void> {
 
     socket.onclose = function () {
       console.warn("WebSocket connection closed. Reconnecting in 30s...");
-      pendingMessages.forEach(({ reject }) => reject(new Error("WebSocket closed")));
+      pendingMessages.forEach(({ reject, timer }) => {
+        clearTimeout(timer);
+        reject(new Error("WebSocket closed"));
+      });
       isAuthenticated = false;
       pendingMessages.clear();
       initPromise = null;
@@ -66,9 +72,9 @@ async function initWebsocketService(): Promise<void> {
     socket.onerror = function (event) {
       console.error("WebSocket error:", event);
     };
+  });
 
   return initPromise;
-  });
 }
 
 async function sendSocket(type: string, props: Record<string, any>): Promise<any> {
@@ -80,7 +86,12 @@ async function sendSocket(type: string, props: Record<string, any>): Promise<any
   const message = { id, type, ...props };
   console.debug("Sending WebSocket message:", message);
   return new Promise((resolve, reject) => {
-    pendingMessages.set(id, { resolve, reject });
+    const timer = setTimeout(() => {
+      if (pendingMessages.delete(id)) {
+        reject(new Error(`WebSocket request timed out after ${SEND_TIMEOUT_MS}ms: ${JSON.stringify({ type, ...props })}`));
+      }
+    }, SEND_TIMEOUT_MS);
+    pendingMessages.set(id, { resolve, reject, timer });
     socket!.send(JSON.stringify(message));
   });
 }

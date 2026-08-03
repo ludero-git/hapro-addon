@@ -2,7 +2,6 @@ import * as helpers from "./apiHelperService";
 import * as fs from 'fs';
 import * as path from 'path';
 import * as unzipper from 'unzipper';
-import { Buffer } from 'buffer';
 
 async function getCurrentFileVersion() {
   const configFilesPath = Bun.env.HAPRO_CONFIG_FILES_PATH || '/homeassistant/hapro-files';
@@ -26,8 +25,6 @@ async function updateFile(req: Request) {
   const configFilesPath = Bun.env.HAPRO_CONFIG_FILES_PATH || '/homeassistant/hapro-files';
   const haproFilesPath = path.join(configFilesPath);
   const zipFilePath = path.join(haproFilesPath, 'update.zip');
-  const backupFile = await req.arrayBuffer();
-  const blob = new Blob([backupFile], { type: "application/zip" });
 
   try {
     if (!fs.existsSync(haproFilesPath))
@@ -57,8 +54,7 @@ async function updateFile(req: Request) {
       }
     }
 
-    const buffer = Buffer.from(await blob.arrayBuffer());
-    await fs.promises.writeFile(zipFilePath, buffer);
+    await Bun.write(zipFilePath, req);
 
     const directory = await unzipper.Open.file(zipFilePath);
     await directory.extract({ path: haproFilesPath, overwrite: true });

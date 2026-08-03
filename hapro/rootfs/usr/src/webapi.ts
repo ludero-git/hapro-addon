@@ -159,17 +159,22 @@ function extractPathParams(route: string, path: string) {
   }, {});
 }
 
-const uuid = await getUuid();
-if (!uuid) {
-  process.exit(1);
-}
-
-const apiUrl = await getApiUrl();
-if (!apiUrl) {
-  process.exit(1);
-}
-
 console.debug(`Listening on http://localhost:${PORT} ...`);
 
-watchBackupDirectory();
-watchNotifications();
+// Defer HA-dependent features until env vars are ready (setup-addon writes them)
+async function waitForEnv() {
+  while (true) {
+    const uuid = await getUuid().catch(() => null);
+    const apiUrl = await getApiUrl().catch(() => null);
+    if (uuid && apiUrl) {
+      console.log("UUID and API URL are ready, starting HA-dependent services.");
+      watchBackupDirectory();
+      watchNotifications();
+      return;
+    }
+    console.warn("Waiting for UUID and API URL to be set by setup-addon... retrying in 10s");
+    await new Promise((r) => setTimeout(r, 10000));
+  }
+}
+
+waitForEnv();
