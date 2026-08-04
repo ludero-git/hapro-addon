@@ -28,12 +28,20 @@ async function getUpdates() {
     const fileUpdate = await fileUpdateStream.json();
     var listOfUpdates: any[] = [];
     try {
-      listOfUpdates = typeof response === "object" ? response : JSON.parse(response);
+      if (Array.isArray(response)) {
+        listOfUpdates = response;
+      } else if (typeof response === "string") {
+        const parsed = JSON.parse(response);
+        listOfUpdates = Array.isArray(parsed) ? parsed : [];
+      } else {
+        listOfUpdates = [];
+      }
     }
     catch (error) {
       console.error("Error parsing updates response:", error instanceof Error ? error.message : error, "Response content:", response);
-      listOfUpdates = response ? String(response).replace(/[\[\]"]+/g, "").split(",").map((item: string) => item.trim()) : [];
+      listOfUpdates = [];
     }
+    listOfUpdates = listOfUpdates.filter((u: any) => u && u.identifier !== "hapro-files");
     listOfUpdates.push({
       version_current: fileUpdate?.data?.version || 0,
       version_latest: null,

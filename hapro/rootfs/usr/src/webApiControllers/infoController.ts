@@ -83,6 +83,7 @@ async function getInfo() {
       haVersion: coreInfo.data.version,
       updates: updateInfo,
       fileVersion: fileVersion?.data?.version || 0,
+      filePartnerName: fileVersion?.data?.partner_name || "unknown",
       storage: {
         total: statistics["storageUsed"] + statistics["storageFree"],
         used: statistics["storageUsed"],
