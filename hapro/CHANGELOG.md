@@ -1,4 +1,11 @@
 
+## v1.6.0 05/08/2026
+### Added
+- Improved stability
+- Closed memory leaks
+- Added maintenance and ssh endpoints
+- Fix for file updates
+
 ## v1.5.4 29/07/2026
 ### Added
 - Update integration to v0.1.2
