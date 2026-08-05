@@ -2,10 +2,9 @@
 declare APP_EXIT_CODE=${1}
 declare container="setup-integration"
 
+# Never halt the container for a failed integration copy — it's non-critical.
 if [[ "${APP_EXIT_CODE}" -ne 0 ]] && [[ "${APP_EXIT_CODE}" -ne 256 ]]; then
-  bashio::log.warning "Halt $container with exit code ${APP_EXIT_CODE}"
-  echo "${APP_EXIT_CODE}" > /run/s6-linux-init-container-results/exitcode
-  exec /run/s6/basedir/bin/halt
+  bashio::log.warning "$container exited with code ${APP_EXIT_CODE} — integration setup may have partially failed, but the addon will continue."
+else
+  bashio::log.info "$container completed."
 fi
-
-bashio::log.info "Automatically restarting $container"

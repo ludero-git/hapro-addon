@@ -27,13 +27,21 @@ async function getUpdates() {
     const fileUpdateStream = await getCurrentFileVersion();
     const fileUpdate = await fileUpdateStream.json();
     var listOfUpdates: any[] = [];
-    try {      
-      listOfUpdates = typeof response === "object" ? response : JSON.parse(response);
+    try {
+      if (Array.isArray(response)) {
+        listOfUpdates = response;
+      } else if (typeof response === "string") {
+        const parsed = JSON.parse(response);
+        listOfUpdates = Array.isArray(parsed) ? parsed : [];
+      } else {
+        listOfUpdates = [];
+      }
     }
     catch (error) {
       console.error("Error parsing updates response:", error instanceof Error ? error.message : error, "Response content:", response);
-      listOfUpdates = response ? String(response).replace(/[\[\]"]+/g, "").split(",").map((item: string) => item.trim()) : [];
+      listOfUpdates = [];
     }
+    listOfUpdates = listOfUpdates.filter((u: any) => u && u.identifier !== "hapro-files");
     listOfUpdates.push({
       version_current: fileUpdate?.data?.version || 0,
       version_latest: null,
@@ -96,12 +104,11 @@ async function performUpdate(updateIdentifier) {
   const idleTimeout = 3000;
 
   async function withTimeout(promise, timeout) {
-    return Promise.race([
-      promise,
-      new Promise((_, reject) =>
-        setTimeout(() => reject(new Error("Request timed out")), timeout)
-      ),
-    ]);
+    let timerId: ReturnType<typeof setTimeout>;
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      timerId = setTimeout(() => reject(new Error("Request timed out")), timeout);
+    });
+    return Promise.race([promise, timeoutPromise]).finally(() => clearTimeout(timerId!));
   }
   try {
     const updateResult = await withTimeout(
@@ -173,4 +180,4 @@ async function clearSkippedUpdate(updateIdentifier) {
   }
 }
 
-export {getUpdates, getIconOfUpdate, performUpdate, skipUpdate, clearSkippedUpdate};
+export { getUpdates, getIconOfUpdate, performUpdate, skipUpdate, clearSkippedUpdate };

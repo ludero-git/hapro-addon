@@ -1,6 +1,14 @@
 #!/usr/bin/with-contenv bashio
 bashio::log.info "CADDY: Starting Caddy"
 
+# Wait for setup-addon to write client.toml before reading subdomain from it
+attempt=0
+while [ ! -s "/usr/bin/client.toml" ]; do
+    attempt=$(( attempt + 1 ))
+    bashio::log.warning "CADDY: Waiting for valid client.toml to be ready... (attempt $attempt)"
+    sleep 5
+done
+
 source /usr/src/request.sh
 doSupervisorRequest "core/info"
 export HA_PORT=$(echo "$response" | jq -r .data.port)

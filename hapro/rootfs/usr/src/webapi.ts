@@ -5,8 +5,10 @@ import * as updateController from "./webApiControllers/updateController";
 import * as statisticController from "./webApiControllers/statisticController";
 import * as infoController from "./webApiControllers/infoController";
 import * as fileController from "./webApiControllers/fileController";
+import * as maintenanceController from "./webApiControllers/maintenanceController";
 import { watchNotifications } from "./webApiControllers/watchInput";
 import { getApiUrl, getUuid } from "./webApiControllers/apiHelperService";
+import { handleSshOpen, handleSshMessage, handleSshClose } from "./webApiControllers/sshController";
 
 const PORT = 3000;
 const DEBUG = Bun.env.DEBUG === "*" || Bun.env.BUN_DEBUG === "1";
@@ -42,15 +44,35 @@ const PATHS = {
   BACKUPS_RESTORE: "/backups/:backupId/restore",
   BACKUPS_STATUS: "/backups/:backupId/status",
   FILE_UPLOAD: "/file/upload",
+  MAINTENANCE_HEALTH: "/maintenance/health",
+  MAINTENANCE_RESTART_ADDON: "/maintenance/restart/addon",
+  MAINTENANCE_RESTART_CORE: "/maintenance/restart/core",
+  MAINTENANCE_RESTART_SUPERVISOR: "/maintenance/restart/supervisor",
+  MAINTENANCE_REBOOT: "/maintenance/reboot",
+  MAINTENANCE_LOGS_IDENTIFIERS: "/maintenance/logs/identifiers",
+  MAINTENANCE_LOGS_BOOTS: "/maintenance/logs/boots",
+  MAINTENANCE_LOGS: "/maintenance/logs/:identifier",
+  SSH: "/ssh",
 };
 
-serve({
+const server = serve({
   port: PORT,
+  websocket: {
+    open(ws) { handleSshOpen(ws); },
+    message(ws, message) { handleSshMessage(ws, message); },
+    close(ws) { handleSshClose(ws); },
+  },
   async fetch(req: Request) {
     try {
       const url = new URL(req.url);
       const path = url.pathname;
       console.debug(`Request: ${req.method} ${path}`);
+
+      // Handle SSH WebSocket upgrade
+      if (path === PATHS.SSH) {
+        if (server.upgrade(req, { data: { url: req.url } })) return undefined;
+        return new Response("WebSocket upgrade required", { status: 426 });
+      }
       switch (true) {
         case matchPath(PATHS.DEFAULT, req):
           return await infoController.ping();
@@ -116,6 +138,27 @@ serve({
           );
         case matchPath(PATHS.FILE_UPLOAD, req, "POST"):
           return await fileController.updateFile(req);
+        case matchPath(PATHS.MAINTENANCE_HEALTH, req):
+          return await maintenanceController.getHealth();
+        case matchPath(PATHS.MAINTENANCE_RESTART_ADDON, req, "POST"):
+          return await maintenanceController.restartAddon();
+        case matchPath(PATHS.MAINTENANCE_RESTART_CORE, req, "POST"):
+          return await maintenanceController.restartCore();
+        case matchPath(PATHS.MAINTENANCE_RESTART_SUPERVISOR, req, "POST"):
+          return await maintenanceController.restartSupervisor();
+        case matchPath(PATHS.MAINTENANCE_REBOOT, req, "POST"):
+          return await maintenanceController.rebootHost();
+        case matchPath(PATHS.MAINTENANCE_LOGS_IDENTIFIERS, req):
+          return await maintenanceController.getLogIdentifiers();
+        case matchPath(PATHS.MAINTENANCE_LOGS, req): {
+          const { identifier } = extractPathParams(PATHS.MAINTENANCE_LOGS, path) as { identifier: string };
+          const searchParams = new URL(req.url).searchParams;
+          const cursor = searchParams.get("cursor");
+          const numEntries = parseInt(searchParams.get("num_entries") ?? "100", 10);
+          const boot = searchParams.get("boot");
+          const follow = searchParams.get("follow") === "true";
+          return await maintenanceController.getLogs(identifier, cursor, numEntries, boot, follow);
+        }
         default:
           return new Response(
             JSON.stringify({ StatusCode: 404, Message: "Not Found" }),
@@ -137,7 +180,7 @@ function matchPath(route: string, req: Request, method: string = "GET") {
   if (
     routeParts.length !== pathParts.length ||
     !routeParts.every((part, index) =>
-      part.match(/^:\w+Id$/) ? true : part === pathParts[index],
+      part.startsWith(":") ? true : part === pathParts[index],
     )
   )
     return false;
@@ -151,25 +194,30 @@ function matchPath(route: string, req: Request, method: string = "GET") {
 function extractPathParams(route: string, path: string) {
   const routeParts = route.split("/");
   const pathParts = path.split("/");
-  return routeParts.reduce((acc, part, index) => {
-    if (part.match(/^:\w+Id$/)) {
+  return routeParts.reduce((acc: Record<string, string>, part, index) => {
+    if (part.startsWith(":")) {
       acc[part.slice(1)] = pathParts[index];
     }
     return acc;
   }, {});
 }
 
-const uuid = await getUuid();
-if (!uuid) {
-  process.exit(1);
-}
-
-const apiUrl = await getApiUrl();
-if (!apiUrl) {
-  process.exit(1);
-}
-
 console.debug(`Listening on http://localhost:${PORT} ...`);
 
-watchBackupDirectory();
-watchNotifications();
+// Defer HA-dependent features until env vars are ready (setup-addon writes them)
+async function waitForEnv() {
+  while (true) {
+    const uuid = await getUuid().catch(() => null);
+    const apiUrl = await getApiUrl().catch(() => null);
+    if (uuid && apiUrl) {
+      console.log("UUID and API URL are ready, starting HA-dependent services.");
+      watchBackupDirectory();
+      watchNotifications();
+      return;
+    }
+    console.warn("Waiting for UUID and API URL to be set by setup-addon... retrying in 10s");
+    await new Promise((r) => setTimeout(r, 10000));
+  }
+}
+
+waitForEnv();

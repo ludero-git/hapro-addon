@@ -2,7 +2,6 @@ import * as helpers from "./apiHelperService";
 import * as fs from 'fs';
 import * as path from 'path';
 import * as unzipper from 'unzipper';
-import { Buffer } from 'buffer';
 
 async function getCurrentFileVersion() {
   const configFilesPath = Bun.env.HAPRO_CONFIG_FILES_PATH || '/homeassistant/hapro-files';
@@ -26,8 +25,6 @@ async function updateFile(req: Request) {
   const configFilesPath = Bun.env.HAPRO_CONFIG_FILES_PATH || '/homeassistant/hapro-files';
   const haproFilesPath = path.join(configFilesPath);
   const zipFilePath = path.join(haproFilesPath, 'update.zip');
-  const backupFile = await req.arrayBuffer();
-  const blob = new Blob([backupFile], { type: "application/zip" });
 
   try {
     if (!fs.existsSync(haproFilesPath))
@@ -35,15 +32,23 @@ async function updateFile(req: Request) {
 
     const versionFilePath = path.join(haproFilesPath, 'version.json');
     let currentVersion = null;
+    let currentPartnerName = null;
     if (fs.existsSync(versionFilePath)) {
-      const versionData = await fs.promises.readFile(versionFilePath, 'utf-8');
-      currentVersion = JSON.parse(versionData).version;
+      try {
+        const versionData = await fs.promises.readFile(versionFilePath, 'utf-8');
+        const parsed = JSON.parse(versionData);
+        currentVersion = parsed.version;
+        currentPartnerName = parsed.partner_name;
+      } catch (e) {
+        console.error('Error reading or parsing version file:', e);
+      }
     }
 
     const newVersion = req.headers.get('Version') || '0';
-    if (currentVersion === newVersion) {
+    const newPartnerName = req.headers.get('PartnerName') || 'unknown';
+    if (currentVersion === newVersion && currentPartnerName === newPartnerName) {
       console.log('Version is the same. No update needed.');
-      return new Response(JSON.stringify({ StatusCode: 304, Message: 'Version is the same. No update needed.' }));
+      return new Response(JSON.stringify({ StatusCode: 304, Message: 'Version is the same. No update needed.' }), { status: 304 });
     }
 
     const files = await fs.promises.readdir(haproFilesPath);
@@ -57,8 +62,7 @@ async function updateFile(req: Request) {
       }
     }
 
-    const buffer = Buffer.from(await blob.arrayBuffer());
-    await fs.promises.writeFile(zipFilePath, buffer);
+    await Bun.write(zipFilePath, req);
 
     const directory = await unzipper.Open.file(zipFilePath);
     await directory.extract({ path: haproFilesPath, overwrite: true });
@@ -66,7 +70,7 @@ async function updateFile(req: Request) {
 
     const versionData = {
       version: newVersion,
-      partner_name: req.headers.get('PartnerName') || 'unknown'
+      partner_name: newPartnerName
     };
     await fs.promises.writeFile(versionFilePath, JSON.stringify(versionData, null, 2), 'utf-8');
 
