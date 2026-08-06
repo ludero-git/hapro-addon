@@ -1,4 +1,8 @@
 
+## v1.6.2 06/08/2026
+### Added
+- Update integration to v0.1.4
+
 ## v1.6.1 05/08/2026
 ### Added
 - Update integration to v0.1.3
