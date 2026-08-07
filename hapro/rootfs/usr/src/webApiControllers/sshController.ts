@@ -299,7 +299,8 @@ export function handleSshOpen(ws: ServerWebSocket<any>) {
       console.log(`[LOG] SSH session exited early (exit code ${code} after ${runDuration}ms) — falling back to hapro web terminal.`);
       ws.send(new TextEncoder().encode("\r\n\x1b[33mSSH passthrough closed — falling back to hapro web terminal...\x1b[0m\r\n"));
 
-      const fallbackCmd = ["script", "-q", "-c", "exec /bin/bash", "/dev/null"];
+      const fallbackCmdStr = `stty rows ${rows} cols ${cols} && exec /bin/bash`;
+      const fallbackCmd = ["script", "-q", "-c", fallbackCmdStr, "/dev/null"];
       const fallbackProc = spawn(fallbackCmd, {
         stdin: "pipe",
         stdout: "pipe",
@@ -309,6 +310,8 @@ export function handleSshOpen(ws: ServerWebSocket<any>) {
           TERM: "xterm-256color",
           HOME: "/root",
           LANG: "en_US.UTF-8",
+          COLUMNS: cols.toString(),
+          LINES: rows.toString(),
         },
       });
 

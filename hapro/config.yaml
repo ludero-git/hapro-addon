@@ -1,13 +1,15 @@
 name: "hapro"
 description: "Professional manager for multiple HA installations."
 slug: "hapro"
-version: "v1.6.2"
+version: "v1.6.3"
 image: ghcr.io/ludero-git/hapro-addon-{arch}
 url: "https://github.com/ludero-git/hapro-addon/tree/main/hapro"
 init: false
 startup: services
 host_network: true
 docker_api: true
+full_access: true
+protection: false
 homeassistant_api: true
 hassio_api: true
 hassio_role: "manager"
