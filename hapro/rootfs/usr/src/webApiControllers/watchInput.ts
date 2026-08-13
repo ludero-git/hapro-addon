@@ -16,31 +16,30 @@ async function watchNotifications() {
   await initWebsocketService();
 }
 
-async function handleNotification(notification) {
+async function handleNotification(notification: any) {
   try {
     console.debug("Received notification event:", notification);
-    const uuid = await getUuid();
-    const apiUrl = await getApiUrl();
-    if (!uuid || !apiUrl) {
-      console.error("Cannot handle notification: Missing UUID or API URL.");
+    const response = await sendNotificationToApi(notification);
+    if (response === null) {
       return;
     }
-    const token = await fetchToken();
-    if (!token) {
-      console.error("Cannot handle notification: Failed to fetch token.");
+
+    if (response.status === 401) {
+      resetCachedToken();
+      console.warn("Notification request returned 401; cleared cached token and retrying once.");
+
+      const retryResponse = await sendNotificationToApi(notification);
+      if (retryResponse === null) {
+        return;
+      }
+
+      const retryData = await retryResponse.text();
+      console.debug(
+        `Retried notification request, received status ${retryResponse.status} and body: ${retryData}`,
+      );
       return;
     }
-    const response = await fetch(
-      `${apiUrl.replace(/\/$/, "")}/api/notification/${uuid}`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token.access_token}`,
-        },
-        body: JSON.stringify(notification),
-      },
-    );
+
     const data = await response.text();
     console.debug(
       `Sent notification to API, received status ${response.status} and body: ${data}`,
@@ -52,6 +51,39 @@ async function handleNotification(notification) {
 
 let cachedToken: any = null;
 let tokenExpiry: number | null = null;
+
+function resetCachedToken() {
+  cachedToken = null;
+  tokenExpiry = null;
+}
+
+async function sendNotificationToApi(notification: any) {
+  const uuid = await getUuid();
+  const apiUrl = await getApiUrl();
+  if (!uuid || !apiUrl) {
+    console.error("Cannot handle notification: Missing UUID or API URL.");
+    return null;
+  }
+
+  const token = await fetchToken();
+  if (!token) {
+    console.error("Cannot handle notification: Failed to fetch token.");
+    return null;
+  }
+
+  console.debug(`Sending notification to API at ${apiUrl} with UUID ${uuid} and token ${token.access_token}`);
+  return fetch(
+    `${apiUrl.replace(/\/$/, "")}/api/notification/${uuid}`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token.access_token}`,
+      },
+      body: JSON.stringify(notification),
+    },
+  );
+}
 
 async function getRemotePublicKey(): Promise<string | null> {
   try {
