@@ -1,4 +1,8 @@
 
+## v1.6.8 17/08/2026
+### Added
+- Update integration to v0.1.8
+
 ## v1.6.7 13/08/2026
 ### Added
 - Added notification retry mechanism including 401 auth refresh
