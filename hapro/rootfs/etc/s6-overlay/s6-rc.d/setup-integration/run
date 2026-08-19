@@ -34,5 +34,11 @@ bashio::log.info "SETUP-INTEGRATION: Copying Ludero Virtual Grid integration to 
 cp -R "$INTEGRATION_SOURCE" "$INTEGRATION_DEST"
 
 bashio::log.info "SETUP-INTEGRATION: Integration installed successfully!"
-bashio::log.warning "SETUP-INTEGRATION: You must fully restart Home Assistant Core for it to recognize the new integration version."
-doHaInternalApiRequest "services/notify/persistent_notification" "POST" "{\"title\":\"HaPro requires restart\",\"message\":\"Please restart Home Assistant Core to apply the new integration version.\",\"data\":{\"notification_id\":\"hapro_restart\"}}" || true
+
+if bashio::config.true 'restart_ha_on_integration_update' || ! bashio::config.has_value 'restart_ha_on_integration_update'; then
+    bashio::log.info "SETUP-INTEGRATION: Restarting Home Assistant Core to apply the new integration version..."
+    doSupervisorRequest "core/restart" "POST" || true
+else
+    bashio::log.warning "SETUP-INTEGRATION: You must fully restart Home Assistant Core for it to recognize the new integration version."
+    doHaInternalApiRequest "services/notify/persistent_notification" "POST" "{\"title\":\"HaPro requires restart\",\"message\":\"Please restart Home Assistant Core to apply the new integration version.\",\"data\":{\"notification_id\":\"hapro_restart\"}}" || true
+fi

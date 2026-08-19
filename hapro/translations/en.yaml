@@ -14,3 +14,6 @@ configuration:
   filespath:
     name: Files path
     description: The path where files from the monitoring file distribution will be stored.
+  restart_ha_on_integration_update:
+    name: Restart Home Assistant on integration update
+    description: Automatically restart Home Assistant Core when the Virtual Grid integration is updated. If disabled, a persistent notification will be sent instead.
