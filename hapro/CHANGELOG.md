@@ -1,4 +1,8 @@
 
+## v1.6.10 19/08/2026
+### Added
+- Update integration to v0.1.9
+
 ## v1.6.9 19/08/2026
 ### Added
 - Option to auto-restart Home Assistant to apply new Virtual Grid integration version (enabled by default)
