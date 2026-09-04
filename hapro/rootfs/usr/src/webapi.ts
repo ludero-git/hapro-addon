@@ -27,6 +27,8 @@ const PATHS = {
   IP: "/ip",
   USERS: "/users",
   UPDATES: "/updates",
+  UPDATES_RELOAD: "/updates/reload",
+  UPDATES_RELOAD_STATUS: "/updates/reload/status",
   UPDATES_ICON: "/updates/:updateId/icon",
   UPDATES_SKIP: "/updates/:updateId/skip",
   UPDATES_CLEAR: "/updates/:updateId/clear",
@@ -82,6 +84,10 @@ const server = serve({
           return await infoController.getIp();
         case matchPath(PATHS.USERS, req):
           return await infoController.getUsers();
+        case matchPath(PATHS.UPDATES_RELOAD_STATUS, req):
+          return updateController.getReloadUpdatesStatus();
+        case matchPath(PATHS.UPDATES_RELOAD, req, "POST"):
+          return await updateController.reloadUpdates();
         case matchPath(PATHS.UPDATES, req):
           return await updateController.getUpdates();
         case matchPath(PATHS.UPDATES_ICON, req):

@@ -1,5 +1,17 @@
 import * as helpers from "./apiHelperService";
 import { getCurrentFileVersion } from "./fileController";
+import { initWebsocketService, sendSocket } from "./websocketService";
+
+type UpdateRefreshState = "idle" | "checking" | "completed" | "failed";
+
+let updateRefreshStatus: {
+  state: UpdateRefreshState;
+  started_at?: string;
+  finished_at?: string;
+  result?: unknown;
+  error?: string;
+} = { state: "idle" };
+let updateRefreshPromise: Promise<void> | null = null;
 
 async function getUpdates() {
   try {
@@ -56,6 +68,101 @@ async function getUpdates() {
     return new Response(
       JSON.stringify({ StatusCode: 500, Message: "Internal Server Error" })
     );
+  }
+}
+
+async function reloadUpdates() {
+  if (updateRefreshPromise) {
+    return new Response(
+      JSON.stringify({ StatusCode: 202, data: updateRefreshStatus }),
+      { status: 202 },
+    );
+  }
+
+  updateRefreshStatus = {
+    state: "checking",
+    started_at: new Date().toISOString(),
+  };
+
+  updateRefreshPromise = (async () => {
+    try {
+      const [supervisorResult, hacsResult] = await Promise.all([
+        helpers.doSupervisorRequest("/reload_updates", "POST"),
+        reloadHacsUpdates(),
+      ]);
+      updateRefreshStatus = {
+        state: "completed",
+        started_at: updateRefreshStatus.started_at,
+        finished_at: new Date().toISOString(),
+        result: { supervisor: supervisorResult, hacs: hacsResult },
+      };
+    } catch (error) {
+      console.error("Error reloading updates:", error);
+      updateRefreshStatus = {
+        state: "failed",
+        started_at: updateRefreshStatus.started_at,
+        finished_at: new Date().toISOString(),
+        error: error instanceof Error ? error.message : String(error),
+      };
+    } finally {
+      updateRefreshPromise = null;
+    }
+  })();
+
+  return new Response(
+    JSON.stringify({ StatusCode: 202, data: updateRefreshStatus }),
+    { status: 202 },
+  );
+}
+
+function getReloadUpdatesStatus() {
+  return new Response(
+    JSON.stringify({ StatusCode: 200, data: updateRefreshStatus }),
+  );
+}
+
+async function reloadHacsUpdates() {
+  try {
+    await initWebsocketService();
+    const repositories = await sendSocket("hacs/repositories/list", {});
+    const installedRepositories = Array.isArray(repositories)
+      ? repositories.filter((repository) => repository?.installed)
+      : [];
+    const results = await Promise.all(
+      installedRepositories.map(async (repository) => {
+        const repositoryId = String(repository.id ?? repository.full_name ?? "");
+        if (!repositoryId) return null;
+
+        try {
+          await sendSocket("hacs/repository/refresh", { repository: repositoryId });
+          return null;
+        } catch (error) {
+          return {
+            repository: repository.full_name ?? repositoryId,
+            error: error instanceof Error ? error.message : String(error),
+          };
+        }
+      }),
+    );
+    const failed = results.filter(
+      (result): result is { repository: string; error: string } => result !== null,
+    );
+
+    return {
+      available: true,
+      checked: installedRepositories.length,
+      failed,
+    };
+  } catch (error) {
+    console.info(
+      "HACS is unavailable; skipping HACS update refresh:",
+      error instanceof Error ? error.message : error,
+    );
+    return {
+      available: false,
+      checked: 0,
+      failed: [],
+    };
   }
 }
 
@@ -180,4 +287,12 @@ async function clearSkippedUpdate(updateIdentifier) {
   }
 }
 
-export { getUpdates, getIconOfUpdate, performUpdate, skipUpdate, clearSkippedUpdate };
+export {
+  getUpdates,
+  reloadUpdates,
+  getReloadUpdatesStatus,
+  getIconOfUpdate,
+  performUpdate,
+  skipUpdate,
+  clearSkippedUpdate,
+};
