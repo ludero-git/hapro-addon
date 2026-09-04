@@ -1,4 +1,11 @@
 
+## v1.6.12 04/09/2026
+### Added
+- Added endpoints to check for updates and get the status of the updates check
+
+### Fixed
+- Fixed permissions by using HA admin instead of manager
+
 ## v1.6.11 04/09/2026
 ### Added
 - Update integration to v0.2.0
