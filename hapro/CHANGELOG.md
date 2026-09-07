@@ -1,3 +1,6 @@
+## v1.6.13 07/09/2026
+### Fixed
+- Bumped app role to admin
 
 ## v1.6.12 04/09/2026
 ### Added
