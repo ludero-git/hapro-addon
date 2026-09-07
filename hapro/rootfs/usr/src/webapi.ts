@@ -6,6 +6,7 @@ import * as statisticController from "./webApiControllers/statisticController";
 import * as infoController from "./webApiControllers/infoController";
 import * as fileController from "./webApiControllers/fileController";
 import * as maintenanceController from "./webApiControllers/maintenanceController";
+import * as inventoryController from "./webApiControllers/inventoryController";
 import { watchNotifications } from "./webApiControllers/watchInput";
 import { getApiUrl, getUuid } from "./webApiControllers/apiHelperService";
 import { handleSshOpen, handleSshMessage, handleSshClose } from "./webApiControllers/sshController";
@@ -26,6 +27,7 @@ const PATHS = {
   INFO: "/info",
   IP: "/ip",
   USERS: "/users",
+  INVENTORY: "/inventory",
   UPDATES: "/updates",
   UPDATES_ICON: "/updates/:updateId/icon",
   UPDATES_SKIP: "/updates/:updateId/skip",
@@ -82,6 +84,8 @@ const server = serve({
           return await infoController.getIp();
         case matchPath(PATHS.USERS, req):
           return await infoController.getUsers();
+        case matchPath(PATHS.INVENTORY, req):
+          return await inventoryController.getInventory();
         case matchPath(PATHS.UPDATES, req):
           return await updateController.getUpdates();
         case matchPath(PATHS.UPDATES_ICON, req):
