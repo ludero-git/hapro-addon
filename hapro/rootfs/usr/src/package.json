@@ -6,7 +6,8 @@
   "main": "webapi.ts",
   "scripts": {
     "dev": "bun --watch webapi.ts",
-    "start": "bun webapi.ts"
+    "start": "bun webapi.ts",
+    "test": "bun test"
   },
   "dependencies": {
     "unzipper": "^0.12.3"
