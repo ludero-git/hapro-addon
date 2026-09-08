@@ -192,6 +192,13 @@ async function getApiUrl() {
   return apiUrl;
 }
 
+function jsonResponse(statusCode: number, data: unknown, message?: string): Response {
+  return new Response(JSON.stringify({ StatusCode: statusCode, data, ...(message ? { Message: message } : {}) }), {
+    status: statusCode,
+    headers: { "Content-Type": "application/json" },
+  });
+}
+
 export {
   doSupervisorRequest,
   doHaInternalApiRequest,
@@ -199,4 +206,5 @@ export {
   getSMStatistics,
   getUuid,
   getApiUrl,
+  jsonResponse,
 };

@@ -176,7 +176,7 @@ async function getInventory(): Promise<Response> {
       configuration: await getConfigurationSchema(app),
     })));
 
-    return jsonResponse(200, {
+    return helpers.jsonResponse(200, {
       device_id: uuid ?? "unknown",
       ha_version: String(coreConfig?.version ?? "unknown"),
       collected_at: new Date().toISOString(),
@@ -185,7 +185,7 @@ async function getInventory(): Promise<Response> {
     });
   } catch (error) {
     console.error("Inventory collection failed:", error instanceof Error ? error.message : String(error));
-    return jsonResponse(500, null, "Inventory collection failed");
+    return helpers.jsonResponse(500, null, "Inventory collection failed");
   }
 }
 
@@ -224,13 +224,6 @@ async function getManifests(): Promise<Manifest[]> {
 
 function humanizeDomain(domain: string): string {
   return domain.split("_").filter(Boolean).map((part) => part.charAt(0).toUpperCase() + part.slice(1)).join(" ");
-}
-
-function jsonResponse(statusCode: number, data: unknown, message?: string): Response {
-  return new Response(JSON.stringify({ StatusCode: statusCode, data, ...(message ? { Message: message } : {}) }), {
-    status: statusCode,
-    headers: { "Content-Type": "application/json" },
-  });
 }
 
 export { getInventory, parseConfigEntries, humanizeDomain };
