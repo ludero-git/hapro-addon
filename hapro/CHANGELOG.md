@@ -1,3 +1,7 @@
+## v1.6.14 08/09/2026
+### Added
+- Apply inventory api for getting more information from the ems 
+
 ## v1.6.13 07/09/2026
 ### Fixed
 - Bumped app role to admin
