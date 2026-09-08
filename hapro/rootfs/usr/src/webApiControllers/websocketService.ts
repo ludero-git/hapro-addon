@@ -42,6 +42,7 @@ async function initWebsocketService(): Promise<void> {
         if (pending) {
           clearTimeout(pending.timer);
           pendingMessages.delete(data.id);
+          console.debug("WebSocket result for id:", data.id, data);
           if (data.success) {
             pending.resolve(data.result);
           } else {
