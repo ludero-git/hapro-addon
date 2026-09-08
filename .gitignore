@@ -1,3 +1,5 @@
 .env
 example/rootfs/usr/bin/rathole
 hapro/rootfs/opt/*
+/hapro-dev
+hapro-dev.tar.gz

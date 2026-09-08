@@ -25,6 +25,91 @@ type Manifest = {
 const CONFIG_ENTRIES_PATH = "/homeassistant/.storage/core.config_entries";
 const READ_ATTEMPTS = 3;
 
+async function getSupervisorApps(): Promise<any[]> {
+  for (const [path, key] of [["/addons", "addons"], ["/apps", "apps"]] as const) {
+    try {
+      const response = await helpers.doSupervisorRequest(path);
+      const apps = response?.data?.[key];
+      if (Array.isArray(apps)) return apps;
+    } catch (error) {
+      console.warn(`Unable to read Supervisor ${path} endpoint:`, error instanceof Error ? error.message : String(error));
+    }
+  }
+  return [];
+}
+
+async function getSupervisorAppConfiguration(app: any): Promise<{
+  schema: Record<string, unknown>;
+  options: Record<string, unknown>;
+}> {
+  let schema: Record<string, unknown> = {};
+  let options: Record<string, unknown> = {};
+
+  if (app?.schema && typeof app.schema === "object" && !Array.isArray(app.schema)) schema = app.schema;
+  if (app?.options && typeof app.options === "object" && !Array.isArray(app.options)) options = app.options;
+
+  const slug = encodeURIComponent(String(app.slug));
+  const paths = [
+    `/addons/${slug}/options/config`,
+    `/apps/${slug}/options/config`,
+    `/addons/${slug}/info`,
+    `/apps/${slug}/info`,
+  ];
+
+  for (const path of paths) {
+    try {
+      const response = await helpers.doSupervisorRequest(path);
+      const data = response?.data ?? response;
+      const candidateSchema = data?.schema ?? data?.configuration?.schema;
+      const candidateOptions = data?.options ?? data?.configuration?.options;
+      if (candidateSchema && typeof candidateSchema === "object" && !Array.isArray(candidateSchema)) {
+        schema = { ...schema, ...candidateSchema };
+      }
+      if (candidateOptions && typeof candidateOptions === "object" && !Array.isArray(candidateOptions)) {
+        options = { ...options, ...candidateOptions };
+      }
+      if (Object.keys(schema).length > 0) break;
+    } catch {
+      // Try the next Supervisor API route for compatibility.
+    }
+  }
+
+  return { schema, options };
+}
+
+function schemaField(rule: unknown, defaultValue?: unknown): Record<string, unknown> {
+  const value = String(rule ?? "");
+  if (!value && defaultValue !== undefined) {
+    return {
+      type: Array.isArray(defaultValue) ? "array" : typeof defaultValue,
+      required: false,
+    };
+  }
+  const optional = value.endsWith("?");
+  const normalized = value.replace(/\?$/, "");
+  const match = normalized.match(/^match\((.*)\)$/);
+  const type = normalized === "int"
+    ? "integer"
+    : normalized === "bool"
+      ? "boolean"
+      : "string";
+
+  return {
+    type,
+    required: !optional,
+    ...(match ? { validation: match[1] } : {}),
+  };
+}
+
+async function getConfigurationSchema(app: any): Promise<Record<string, unknown>> {
+  const { schema, options } = await getSupervisorAppConfiguration(app);
+  const fieldNames = new Set([...Object.keys(options), ...Object.keys(schema)]);
+  const fields = Object.fromEntries(
+    Array.from(fieldNames).map((name) => [name, schemaField(schema[name], options[name])])
+  );
+  return { fields };
+}
+
 async function getInventory(): Promise<Response> {
   try {
     const [coreConfig, storedEntries, socketEntries, manifests, apps, uuid] = await Promise.all([
@@ -32,7 +117,7 @@ async function getInventory(): Promise<Response> {
       readConfigEntries(CONFIG_ENTRIES_PATH),
       getConfigEntryStates(),
       getManifests(),
-      helpers.doSupervisorRequest("/addons"),
+      getSupervisorApps(),
       getUuid(),
     ]);
 
@@ -81,17 +166,15 @@ async function getInventory(): Promise<Response> {
       };
     });
 
-    const supervisorApps = Array.isArray(apps?.data?.addons) ? apps.data.addons : [];
-    const installedApps = supervisorApps.filter((app: any) => app?.installed === true).map((app: any) => ({
+    const installedApps = await Promise.all(apps
+      .filter((app: any) => app?.installed === true || app?.state === "started" || app?.state === "stopped")
+      .map(async (app: any) => ({
       slug: String(app.slug ?? "unknown"),
       name: String(app.name ?? app.slug ?? "Unknown app"),
       version: app.version == null ? null : String(app.version),
       state: app.state == null ? null : String(app.state),
-      configuration: {
-        redacted: true,
-        reason: "App options are intentionally excluded from inventory exports.",
-      },
-    }));
+      configuration: await getConfigurationSchema(app),
+    })));
 
     return jsonResponse(200, {
       device_id: uuid ?? "unknown",
