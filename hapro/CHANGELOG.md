@@ -1,3 +1,7 @@
+
+## v1.6.16 23/09/2026
+### Added
+- Update integration to v0.2.1
 ## v1.6.15 23/09/2026
 ### Added
 - Support for using trusted_networks as well as header auth
