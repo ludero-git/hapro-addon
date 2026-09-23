@@ -7,9 +7,61 @@ source /usr/src/request.sh
 INTEGRATION_SOURCE="/opt/ludero_integration/custom_components/ludero_virtual_grid"
 HA_CUSTOM_COMPONENTS="/homeassistant/custom_components"
 INTEGRATION_DEST="$HA_CUSTOM_COMPONENTS/ludero_virtual_grid"
+LUDERO_FRONTEND_SCRIPT_SOURCE="/usr/src/config/ludero-invalid-config-strategy.js"
+LUDERO_FRONTEND_SCRIPT_DEST="/homeassistant/www/ludero-invalid-config-strategy.js"
+LUDERO_FRONTEND_SCRIPT_BASE_URL="/local/ludero-invalid-config-strategy.js"
+LUDERO_FRONTEND_SCRIPT_VERSION=$(sha256sum "$LUDERO_FRONTEND_SCRIPT_SOURCE" | cut -d ' ' -f1 | cut -c1-12)
+LUDERO_FRONTEND_SCRIPT_URL="${LUDERO_FRONTEND_SCRIPT_BASE_URL}?v=${LUDERO_FRONTEND_SCRIPT_VERSION}"
+FRONTEND_CHANGED=0
+
+request_home_assistant_restart() {
+    local reason="$1"
+
+    if bashio::config.true 'restart_ha_on_integration_update' || ! bashio::config.has_value 'restart_ha_on_integration_update'; then
+        bashio::log.info "SETUP-INTEGRATION: Restarting Home Assistant Core to apply $reason..."
+        doSupervisorRequest "core/restart" "POST" || true
+    else
+        bashio::log.warning "SETUP-INTEGRATION: You must fully restart Home Assistant Core to apply $reason."
+        doHaInternalApiRequest "services/notify/persistent_notification" "POST" "{\"title\":\"HaPro requires restart\",\"message\":\"Please restart Home Assistant Core to apply $reason.\",\"data\":{\"notification_id\":\"hapro_restart\"}}" || true
+    fi
+}
+
+mkdir -p /homeassistant/www
+if [ ! -f "$LUDERO_FRONTEND_SCRIPT_DEST" ] || ! cmp -s "$LUDERO_FRONTEND_SCRIPT_SOURCE" "$LUDERO_FRONTEND_SCRIPT_DEST"; then
+    cp "$LUDERO_FRONTEND_SCRIPT_SOURCE" "$LUDERO_FRONTEND_SCRIPT_DEST"
+    FRONTEND_CHANGED=1
+fi
+
+if ! grep -Fq "$LUDERO_FRONTEND_SCRIPT_URL" /homeassistant/configuration.yaml; then
+    if grep -Fq "$LUDERO_FRONTEND_SCRIPT_BASE_URL" /homeassistant/configuration.yaml; then
+        sed -i "\\|$LUDERO_FRONTEND_SCRIPT_BASE_URL|{/Added by the HaPro addon/d}" /homeassistant/configuration.yaml
+        FRONTEND_CHANGED=1
+    fi
+    if ! grep -Eq '^frontend:[[:space:]]*$' /homeassistant/configuration.yaml; then
+        cat >> /homeassistant/configuration.yaml <<EOF
+
+frontend:
+  extra_module_url:
+    - $LUDERO_FRONTEND_SCRIPT_URL #Added by the HaPro addon
+EOF
+        FRONTEND_CHANGED=1
+    else
+        frontend_section=$(sed -n '/^frontend:[[:space:]]*$/,/^[^[:space:]-]/ { /^frontend:/b; p }' /homeassistant/configuration.yaml)
+        if echo "$frontend_section" | grep -Eq '^[[:space:]]+extra_module_url:'; then
+            sed -i "/^[[:space:]]*extra_module_url:/a\\    - $LUDERO_FRONTEND_SCRIPT_URL #Added by the HaPro addon" /homeassistant/configuration.yaml
+            FRONTEND_CHANGED=1
+        else
+            sed -i '/^frontend:[[:space:]]*$/a\\  extra_module_url:\n    - '\"$LUDERO_FRONTEND_SCRIPT_URL\"' #Added by the HaPro addon' /homeassistant/configuration.yaml
+            FRONTEND_CHANGED=1
+        fi
+    fi
+fi
 
 if [ ! -d "$INTEGRATION_SOURCE" ] || [ ! -f "$INTEGRATION_SOURCE/manifest.json" ]; then
     bashio::log.warning "SETUP-INTEGRATION: Integration source files or manifest.json not found at $INTEGRATION_SOURCE."
+    if [ "$FRONTEND_CHANGED" -eq 1 ]; then
+        request_home_assistant_restart "the Ludero frontend strategy asset update"
+    fi
     exit 0
 fi
 
@@ -22,6 +74,9 @@ fi
 
 if [ -n "$SOURCE_VERSION" ] && [ "$SOURCE_VERSION" = "$DEST_VERSION" ]; then
     bashio::log.info "SETUP-INTEGRATION: Ludero Virtual Grid is already up to date ($SOURCE_VERSION)."
+    if [ "$FRONTEND_CHANGED" -eq 1 ]; then
+        request_home_assistant_restart "the Ludero frontend strategy asset update"
+    fi
     exit 0
 fi
 mkdir -p "$HA_CUSTOM_COMPONENTS"
@@ -34,11 +89,8 @@ bashio::log.info "SETUP-INTEGRATION: Copying Ludero Virtual Grid integration to 
 cp -R "$INTEGRATION_SOURCE" "$INTEGRATION_DEST"
 
 bashio::log.info "SETUP-INTEGRATION: Integration installed successfully!"
-
-if bashio::config.true 'restart_ha_on_integration_update' || ! bashio::config.has_value 'restart_ha_on_integration_update'; then
-    bashio::log.info "SETUP-INTEGRATION: Restarting Home Assistant Core to apply the new integration version..."
-    doSupervisorRequest "core/restart" "POST" || true
+if [ "$FRONTEND_CHANGED" -eq 1 ]; then
+    request_home_assistant_restart "the new Ludero integration version and frontend strategy asset"
 else
-    bashio::log.warning "SETUP-INTEGRATION: You must fully restart Home Assistant Core for it to recognize the new integration version."
-    doHaInternalApiRequest "services/notify/persistent_notification" "POST" "{\"title\":\"HaPro requires restart\",\"message\":\"Please restart Home Assistant Core to apply the new integration version.\",\"data\":{\"notification_id\":\"hapro_restart\"}}" || true
+    request_home_assistant_restart "the new Ludero integration version"
 fi
