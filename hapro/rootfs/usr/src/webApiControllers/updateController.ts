@@ -86,15 +86,16 @@ async function reloadUpdates() {
 
   updateRefreshPromise = (async () => {
     try {
-      const [supervisorResult, hacsResult] = await Promise.all([
+      const [supervisorResult, appsResult, hacsResult] = await Promise.all([
         helpers.doSupervisorRequest("/reload_updates", "POST"),
+        helpers.doSupervisorRequest("/addons/reload", "POST"),
         reloadHacsUpdates(),
       ]);
       updateRefreshStatus = {
         state: "completed",
         started_at: updateRefreshStatus.started_at,
         finished_at: new Date().toISOString(),
-        result: { supervisor: supervisorResult, hacs: hacsResult },
+        result: { supervisor: supervisorResult, apps: appsResult, hacs: hacsResult },
       };
     } catch (error) {
       console.error("Error reloading updates:", error);
