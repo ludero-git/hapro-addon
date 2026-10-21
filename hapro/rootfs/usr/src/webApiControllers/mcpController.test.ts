@@ -9,7 +9,9 @@ const upstream = Bun.serve({ hostname: '127.0.0.1', port: 0, fetch: async (reque
   const body = await request.json() as any;
   return Response.json({ jsonrpc: '2.0', id: body.id, result: body.method === 'initialize'
     ? { protocolVersion: '2025-11-25', serverInfo: { name: 'test-mcp', version: '1' }, capabilities: {} }
-    : { authorization: request.headers.get('authorization'), bridgeSignature: request.headers.get('x-hapro-mcp-signature'), method: body.method } });
+    : body.method === 'tools/list'
+      ? { tools: [{ name: 'ha_read_file', inputSchema: { type: 'object' } }] }
+      : { authorization: request.headers.get('authorization'), bridgeSignature: request.headers.get('x-hapro-mcp-signature'), method: body.method, name: body.params?.name } });
 } });
 afterAll(() => upstream.stop(true));
 const { privateKey, publicKey } = generateKeyPairSync('rsa', { modulusLength: 2048 });
@@ -44,8 +46,13 @@ describe('authenticated MCP bridge', () => {
     const request = signed(); const replay = request.clone();
     const response = await handleMcp(request, settings);
     expect(response.status).toBe(200);
-    expect((await response.json() as any).result).toEqual({ authorization: null, bridgeSignature: null, method: 'tools/list' });
+    expect((await response.json() as any).result.tools.map((tool: any) => tool.name)).toEqual(['ha_read_file']);
     expect((await handleMcp(replay, settings)).status).toBe(401);
+  });
+  test('forwards native HA-MCP file calls', async () => {
+    const response = await handleMcp(signed('/mcp', JSON.stringify({ jsonrpc: '2.0', id: 2, method: 'tools/call', params: { name: 'ha_read_file', arguments: { path: 'www/theme.css' } } })), settings);
+    expect(response.status).toBe(200);
+    expect((await response.json() as any).result).toEqual({ authorization: null, bridgeSignature: null, method: 'tools/call', name: 'ha_read_file' });
   });
   test('reports readiness without revealing the connection secret', async () => {
     const response = await handleMcp(signed('/mcp/status'), settings);
