@@ -10,7 +10,7 @@ const upstream = Bun.serve({ hostname: '127.0.0.1', port: 0, fetch: async (reque
   return Response.json({ jsonrpc: '2.0', id: body.id, result: body.method === 'initialize'
     ? { protocolVersion: '2025-11-25', serverInfo: { name: 'test-mcp', version: '1' }, capabilities: {} }
     : body.method === 'tools/list'
-      ? { tools: [{ name: 'ha_read_file', inputSchema: { type: 'object' } }] }
+      ? { tools: [{ name: 'ha_read_file', annotations: { readOnlyHint: true }, inputSchema: { type: 'object' } }, { name: 'ha_delete_file', annotations: { readOnlyHint: false }, inputSchema: { type: 'object' } }] }
       : { authorization: request.headers.get('authorization'), bridgeSignature: request.headers.get('x-hapro-mcp-signature'), method: body.method, name: body.params?.name } });
 } });
 afterAll(() => upstream.stop(true));
@@ -46,7 +46,7 @@ describe('authenticated MCP bridge', () => {
     const request = signed(); const replay = request.clone();
     const response = await handleMcp(request, settings);
     expect(response.status).toBe(200);
-    expect((await response.json() as any).result.tools.map((tool: any) => tool.name)).toEqual(['ha_read_file']);
+    expect((await response.json() as any).result.tools.map((tool: any) => tool.name)).toEqual(['ha_read_file', 'ha_delete_file']);
     expect((await handleMcp(replay, settings)).status).toBe(401);
   });
   test('forwards native HA-MCP file calls', async () => {
@@ -59,6 +59,7 @@ describe('authenticated MCP bridge', () => {
     expect(response.status).toBe(200);
     const text = await response.text();
     expect(text).toContain('ready'); expect(text).not.toContain('private_test');
+    expect(JSON.parse(text).tools).toEqual([{ name: 'ha_read_file', readOnlyHint: true }, { name: 'ha_delete_file', readOnlyHint: false }]);
   });
   test('reports missing configuration', async () => expect((await handleMcp(signed(), { ...settings, url: '' })).status).toBe(503));
   test('restricts configured destinations', () => {

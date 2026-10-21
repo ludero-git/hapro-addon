@@ -166,10 +166,55 @@ export async function probeLocalMcp(config: McpSettings, signal: AbortSignal): P
   }
   let payload: any;
   try { payload = response.headers.get('content-type')?.includes('event-stream') ? text.split(/\r?\n/).filter((line) => line.startsWith('data:')).map((line) => { try { return JSON.parse(line.slice(5)); } catch { return {}; } }).find((item) => item.result || item.error) : JSON.parse(text); } catch { /* Invalid MCP endpoint. */ }
-  const session = response.headers.get('mcp-session-id');
-  if (session) {
-    try { const closed = await fetch(config.url, { method: 'DELETE', headers: { 'mcp-session-id': session, 'mcp-protocol-version': payload?.result?.protocolVersion ?? '2025-11-25' }, redirect: 'error', signal: AbortSignal.timeout(3_000) }); await closed.body?.cancel(); } catch { /* Session will expire upstream. */ }
-  }
   if (!payload?.result?.serverInfo || payload.error) return json(503, 'invalid_mcp_response', 'The configured local URL did not return a valid MCP initialization.');
-  return json(200, 'ready', 'Connected to the local HA-MCP server.', { protocolVersion: payload.result.protocolVersion, serverName: String(payload.result.serverInfo.name ?? 'HA-MCP'), serverVersion: String(payload.result.serverInfo.version ?? '') });
+  const session = response.headers.get('mcp-session-id');
+  const headers = new Headers({ 'Content-Type': 'application/json', Accept: 'application/json, text/event-stream', 'mcp-protocol-version': payload.result.protocolVersion ?? '2025-11-25' });
+  if (session) headers.set('mcp-session-id', session);
+  try {
+    const initialized = await fetch(config.url, { method: 'POST', headers, body: JSON.stringify({ jsonrpc: '2.0', method: 'notifications/initialized' }), redirect: 'error', signal: AbortSignal.any([signal, AbortSignal.timeout(8_000)]) });
+    await initialized.body?.cancel();
+    if (!initialized.ok) throw new Error('initialization_failed');
+    const tools: { name: string; readOnlyHint: boolean }[] = [];
+    let cursor: string | undefined;
+    for (let page = 0; page < 10; page++) {
+      const listed = await fetch(config.url, { method: 'POST', headers, body: JSON.stringify({ jsonrpc: '2.0', id: `hapro-tools-${page}`, method: 'tools/list', params: cursor ? { cursor } : {} }), redirect: 'error', signal: AbortSignal.any([signal, AbortSignal.timeout(8_000)]) });
+      if (!listed.ok) { await listed.body?.cancel(); throw new Error('tool_discovery_failed'); }
+      const result = await readMcpResult(listed);
+      if (!Array.isArray(result?.tools)) throw new Error('invalid_tool_list');
+      for (const tool of result.tools) {
+        if (typeof tool?.name !== 'string' || tool.name.length > 128 || tools.length >= 500) throw new Error('invalid_tool_list');
+        tools.push({ name: tool.name, readOnlyHint: tool.annotations?.readOnlyHint === true });
+      }
+      cursor = result.nextCursor;
+      if (!cursor) return json(200, 'ready', 'Connected to the local HA-MCP server.', { protocolVersion: payload.result.protocolVersion, serverName: String(payload.result.serverInfo.name ?? 'HA-MCP'), serverVersion: String(payload.result.serverInfo.version ?? ''), tools });
+      if (typeof cursor !== 'string' || cursor.length > 1000) throw new Error('invalid_tool_list');
+    }
+  } catch { /* Discovery failure is reported below. */ }
+  finally {
+    if (session) {
+      try { const closed = await fetch(config.url, { method: 'DELETE', headers, redirect: 'error', signal: AbortSignal.timeout(3_000) }); await closed.body?.cancel(); } catch { /* Session will expire upstream. */ }
+    }
+  }
+  return json(503, 'tool_discovery_failed', 'The HA-MCP tool list could not be read.');
+}
+
+async function readMcpResult(response: Response): Promise<any> {
+  const reader = response.body?.getReader();
+  if (!reader) throw new Error('empty_tool_list');
+  const decoder = new TextDecoder();
+  let body = '';
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      body += decoder.decode(value, { stream: true });
+      if (body.length > 2_000_000) throw new Error('response_limit');
+      if (response.headers.get('content-type')?.includes('event-stream') && /data:.*"(?:result|error)".*\r?\n\r?\n/.test(body)) break;
+    }
+  } finally { await reader.cancel(); }
+  const payload = response.headers.get('content-type')?.includes('event-stream')
+    ? body.split(/\r?\n/).filter((line) => line.startsWith('data:')).map((line) => { try { return JSON.parse(line.slice(5)); } catch { return {}; } }).find((item) => item.result || item.error)
+    : JSON.parse(body);
+  if (payload?.error || !payload?.result) throw new Error('invalid_tool_list');
+  return payload.result;
 }
