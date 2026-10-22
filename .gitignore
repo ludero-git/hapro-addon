@@ -1,4 +1,6 @@
 .env
+.env.mcp.local
+/mcp-development-options.yaml
 example/rootfs/usr/bin/rathole
 hapro/rootfs/opt/*
 /hapro-dev
