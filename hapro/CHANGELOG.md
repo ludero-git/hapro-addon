@@ -1,19 +1,13 @@
-## Unreleased
-### Changed
-- Forward HA-MCP's native file tools without adding Hapro filesystem tools; file permissions and approval grants remain enforced by the Hapro API.
 
-## v1.6.19 21/10/2026
+## v1.6.17 21/10/2026
 ### Changed
 - Expand signed MCP file tools to Home Assistant config and local add-ons; access www under config/www. Retain path confinement and per-operation approval for writes and deletions.
+- Forward HA-MCP's native file tools without adding Hapro filesystem tools; file permissions and approval grants remain enforced by the Hapro API.
 
-## v1.6.18 21/10/2026
 ### Added
 - Expose www file listing/reading and exact file create/replace/delete through the signed MCP bridge.
 - Require Hapro-signed, single-operation user consent for file writes and deletion; enforce relative paths, no symlinks and existing-file hash checks.
 - Preserve native MCP tools and sessions while adding the bridge tool catalog.
-
-## v1.6.17 21/10/2026
-### Added
 - Enable remote device management through Hapro by routing authorized MCP requests to the device's local HA-MCP server, subject to configured permissions.
 
 ## v1.6.16 23/09/2026
