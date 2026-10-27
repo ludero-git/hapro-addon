@@ -1,4 +1,8 @@
 
+## v1.6.18 27/10/2026
+### Added
+- Update integration to v0.3.0
+
 ## v1.6.17 21/10/2026
 ### Changed
 - Expand signed MCP file tools to Home Assistant config and local add-ons; access www under config/www. Retain path confinement and per-operation approval for writes and deletions.
