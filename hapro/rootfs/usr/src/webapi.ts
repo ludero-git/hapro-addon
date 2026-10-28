@@ -8,6 +8,7 @@ import * as fileController from "./webApiControllers/fileController";
 import * as maintenanceController from "./webApiControllers/maintenanceController";
 import * as inventoryController from "./webApiControllers/inventoryController";
 import { watchNotifications } from "./webApiControllers/watchInput";
+import * as supportController from "./webApiControllers/supportController";
 import { getApiUrl, getUuid } from "./webApiControllers/apiHelperService";
 import { handleSshOpen, handleSshMessage, handleSshClose } from "./webApiControllers/sshController";
 
@@ -56,6 +57,7 @@ const PATHS = {
   MAINTENANCE_LOGS_IDENTIFIERS: "/maintenance/logs/identifiers",
   MAINTENANCE_LOGS_BOOTS: "/maintenance/logs/boots",
   MAINTENANCE_LOGS: "/maintenance/logs/:identifier",
+  SUPPORT: "/support",
   SSH: "/ssh",
 };
 
@@ -169,6 +171,8 @@ const server = serve({
           const follow = searchParams.get("follow") === "true";
           return await maintenanceController.getLogs(identifier, cursor, numEntries, boot, follow);
         }
+        case matchPath(PATHS.SUPPORT, req, "POST"):
+          return await supportController.handleSupportPush(req);
         default:
           return new Response(
             JSON.stringify({ StatusCode: 404, Message: "Not Found" }),
@@ -223,6 +227,7 @@ async function waitForEnv() {
       console.log("UUID and API URL are ready, starting HA-dependent services.");
       watchBackupDirectory();
       watchNotifications();
+      supportController.initSupportService();
       return;
     }
     console.warn("Waiting for UUID and API URL to be set by setup-addon... retrying in 10s");
