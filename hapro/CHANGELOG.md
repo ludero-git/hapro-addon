@@ -1,3 +1,7 @@
+
+## v1.6.20 02/11/2026
+### Added
+- Update integration to v0.3.1
 ## v1.6.19 29/10/2026
 ### Added
 - Support for EMS contact info
