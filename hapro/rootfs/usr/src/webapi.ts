@@ -7,6 +7,7 @@ import * as infoController from "./webApiControllers/infoController";
 import * as fileController from "./webApiControllers/fileController";
 import * as maintenanceController from "./webApiControllers/maintenanceController";
 import * as inventoryController from "./webApiControllers/inventoryController";
+import { handleMcp } from "./webApiControllers/mcpController";
 import { watchNotifications } from "./webApiControllers/watchInput";
 import * as supportController from "./webApiControllers/supportController";
 import { getApiUrl, getUuid } from "./webApiControllers/apiHelperService";
@@ -72,6 +73,7 @@ const server = serve({
     try {
       const url = new URL(req.url);
       const path = url.pathname;
+      if (path === '/mcp' || path === '/mcp/status') return await handleMcp(req);
       console.debug(`Request: ${req.method} ${path}`);
 
       // Handle SSH WebSocket upgrade

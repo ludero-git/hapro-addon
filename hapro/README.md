@@ -59,6 +59,10 @@ HaPRO extends the capabilities of your Home Assistant installation by providing 
 
 - **`caddy_port`** (default: `8099`): The port Caddy uses for reverse proxying. Change this if you have port conflicts with other add-ons like Tailscale. The rathole tunnel will automatically connect to this port.
 
+### Optional MCP integration
+
+HaPRO runs without the HA-MCP integration. When HA-MCP is absent or its Server entry is disabled, MCP requests return HTTP `503` with state `mcp_not_configured`. Normal HaPRO services continue to run; device registration and the Hapro API connection are still required as usual. See [MCP setup](MCP.md) to enable the bridge.
+
 ## Contributing
 
 Contributions are what make the open-source community such an amazing place to learn, inspire, and create. Any contributions you make are **greatly appreciated**.
