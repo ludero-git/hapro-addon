@@ -1,5 +1,6 @@
 import logging
 from http import HTTPStatus
+import inspect
 import os.path
 from ipaddress import ip_address
 from typing import Any, OrderedDict, TYPE_CHECKING
@@ -115,6 +116,18 @@ def get_actual_ip(request: Request) -> str:
     return request._transport_peername
 
 
+def verify_client_id(request: Request, client_id: str) -> bool:
+    """Verify a client ID across Home Assistant auth API versions."""
+    parameters = inspect.signature(indieauth.verify_client_id).parameters
+    if "request_scheme" in parameters and "request_netloc" in parameters:
+        return indieauth.verify_client_id(
+            client_id,
+            request_scheme=request.scheme,
+            request_netloc=request.host,
+        )
+    return indieauth.verify_client_id(client_id)
+
+
 class RequestLoginFlowIndexView(LoginFlowIndexView):
     debug: bool
 
@@ -128,6 +141,11 @@ class RequestLoginFlowIndexView(LoginFlowIndexView):
                 vol.Required("client_id"): str,
                 vol.Required("handler"): vol.Any(str, list),
                 vol.Required("redirect_uri"): str,
+                vol.Optional("code_challenge"): vol.Match(
+                    r"^[A-Za-z0-9_-]{43}$"
+                ),
+                vol.Optional("code_challenge_method"): str,
+                vol.Optional("response_type"): str,
                 vol.Optional("type", default="authorize"): str,
             }
         )
@@ -137,9 +155,27 @@ class RequestLoginFlowIndexView(LoginFlowIndexView):
         """Create a new login flow."""
         client_id: str = data["client_id"]
         redirect_uri: str = data["redirect_uri"]
+        code_challenge = data.get("code_challenge")
+        code_challenge_method = data.get("code_challenge_method")
 
-        if not indieauth.verify_client_id(client_id):
+        if not verify_client_id(request, client_id):
             return self.json_message("Invalid client id", HTTPStatus.BAD_REQUEST)
+
+        if data.get("response_type", "code") != "code":
+            return self.json_message(
+                "Response type not supported", HTTPStatus.BAD_REQUEST
+            )
+
+        if code_challenge_method is not None and not code_challenge:
+            return self.json_message(
+                "code_challenge required when code_challenge_method is provided",
+                HTTPStatus.BAD_REQUEST,
+            )
+
+        if code_challenge is not None and code_challenge_method != "S256":
+            return self.json_message(
+                "Transform algorithm not supported", HTTPStatus.BAD_REQUEST
+            )
 
         handler: tuple[str, ...] | str
         if isinstance(data["handler"], list):
@@ -151,15 +187,19 @@ class RequestLoginFlowIndexView(LoginFlowIndexView):
             _LOGGER.debug(request.headers)
             actual_ip = get_actual_ip(request)
             _LOGGER.debug("Got actual IP %s", actual_ip)
+            flow_context = {
+                "request": request,
+                "ip_address": ip_address(request.remote),  # type: ignore[arg-type]
+                "conn_ip_address": ip_address(actual_ip),  # type: ignore[arg-type]
+                "credential_only": data.get("type") == "link_user",
+                "redirect_uri": redirect_uri,
+            }
+            if code_challenge and code_challenge_method:
+                flow_context["code_challenge"] = code_challenge
+                flow_context["code_challenge_method"] = code_challenge_method
             result = await self._flow_mgr.async_init(
                 handler,  # type: ignore[arg-type]
-                context={
-                    "request": request,
-                    "ip_address": ip_address(request.remote),  # type: ignore[arg-type]
-                    "conn_ip_address": ip_address(actual_ip),  # type: ignore[arg-type]
-                    "credential_only": data.get("type") == "link_user",
-                    "redirect_uri": redirect_uri,
-                },
+                context=flow_context,
             )
         except data_entry_flow.UnknownHandler:
             return self.json_message("Invalid handler specified", HTTPStatus.NOT_FOUND)

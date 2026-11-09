@@ -9,6 +9,27 @@ bashio::log.info "SETUP-ADDON: Starting setup"
 # Load request helper functions
 source /usr/src/request.sh
 
+request_home_assistant_restart() {
+    local reason=$1
+    if bashio::config.true 'restart_ha_on_integration_update' || ! bashio::config.has_value 'restart_ha_on_integration_update'; then
+        bashio::log.warning "SETUP-ADDON: Restarting Home Assistant Core to apply $reason."
+        doSupervisorRequest "core/restart" "POST" || true
+    else
+        bashio::log.warning "SETUP-ADDON: You must fully restart Home Assistant Core to apply $reason."
+        doHaInternalApiRequest "services/notify/persistent_notification" "POST" \
+            "{\"title\":\"HaPro requires restart\",\"message\":\"Please restart Home Assistant Core to apply $reason.\",\"data\":{\"notification_id\":\"hapro_restart\"}}" || true
+    fi
+}
+
+hash_directory() {
+    local directory=$1
+    (
+        cd "$directory" || exit 1
+        find . -type f ! -path '*/__pycache__/*' ! -name '*.pyc' -print0 \
+            | sort -z | xargs -0 sha256sum | sha256sum
+    )
+}
+
 # ---------------------------------------------------------------------------
 # Retry helper: waits between attempts with a backoff strategy.
 #   - First 2 hours (7200s): 30s intervals
@@ -40,8 +61,16 @@ bashio::log.info "SETUP-ADDON: Using API URL: $HaproApi"
 
 bashio::log.notice "SETUP-ADDON: Setting HA configuration"
 mkdir -p /homeassistant/custom_components
-if [ ! -d "/homeassistant/custom_components/auth_header" ]; then
-    cp -R /usr/src/hass-auth-header/custom_components/* /homeassistant/custom_components/
+AUTH_HEADER_SOURCE="/usr/src/hass-auth-header/custom_components/auth_header"
+AUTH_HEADER_DEST="/homeassistant/custom_components/auth_header"
+AUTH_HEADER_CHANGED=0
+if [ ! -d "$AUTH_HEADER_DEST" ] || [ "$(hash_directory "$AUTH_HEADER_SOURCE")" != "$(hash_directory "$AUTH_HEADER_DEST")" ]; then
+    rm -rf "$AUTH_HEADER_DEST"
+    cp -R "$AUTH_HEADER_SOURCE" "$AUTH_HEADER_DEST"
+    AUTH_HEADER_CHANGED=1
+    bashio::log.info "SETUP-ADDON: Updated the auth_header custom component."
+else
+    bashio::log.info "SETUP-ADDON: auth_header custom component is already up to date."
 fi
 if [ ! -f "/homeassistant/hapro-http.yaml" ]; then
     cp /usr/src/config/http.yaml /homeassistant/hapro-http.yaml
@@ -90,6 +119,9 @@ if [ "$changed" -eq 1 ]; then
     bashio::log.error "SETUP-ADDON: Made changes to configuration.yaml, please restart Home Assistant"
     doHaInternalApiRequest "services/notify/persistent_notification" "POST" "{\"title\":\"HaPro requires restart\",\"message\":\"HaPro changed your configuration.yaml, please restart Home Assistant\",\"data\":{\"notification_id\":\"hapro_restart\"}}"
     # Do NOT halt — the addon can still run (tunnel etc.) even if HA needs a restart.
+fi
+if [ "$AUTH_HEADER_CHANGED" -eq 1 ]; then
+    request_home_assistant_restart "the new auth_header custom component"
 fi
 
 attempt=0
