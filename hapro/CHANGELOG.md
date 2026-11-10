@@ -1,4 +1,8 @@
 
+## v1.7.1 10/11/2026
+### Added
+- Update integration to v0.3.5
+
 ## v1.7.0 09/11/2026
 ### Fixed
 - Hotfix for 2026.11 header injection issue due to newer auth schemes
