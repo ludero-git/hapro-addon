@@ -1,3 +1,6 @@
+## v1.7.4 27/11/2026
+### Added
+- Added support for debug path
 
 ## v1.7.3 13/11/2026
 ### Added
