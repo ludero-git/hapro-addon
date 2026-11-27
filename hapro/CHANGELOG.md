@@ -1,3 +1,7 @@
+
+## v1.7.5 27/11/2026
+### Added
+- Update integration to v0.4.0
 ## v1.7.4 27/11/2026
 ### Added
 - Added support for debug path
