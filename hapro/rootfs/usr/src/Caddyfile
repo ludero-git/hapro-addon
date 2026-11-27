@@ -11,11 +11,38 @@
 :{$CADDY_PORT} {
   @hapro_api host hapro-api
   handle @hapro_api {
-    reverse_proxy 0.0.0.0:3000
+    @api_tunnel_peer remote_ip 127.0.0.1 ::1
+    route {
+      reverse_proxy @api_tunnel_peer 127.0.0.1:3000
+      respond 403
+    }
+  }
+
+  @ha_debug host debug-{$HA_SUBDOMAIN}.ludero.nl
+  handle @ha_debug {
+    @tunnel_peer remote_ip 127.0.0.1 ::1
+    route {
+      reverse_proxy @tunnel_peer 127.0.0.1:{$HA_PORT}
+      respond 403
+    }
   }
 
   @ha_domain host {$HA_SUBDOMAIN}.ludero.nl
   handle @ha_domain {
-    reverse_proxy 0.0.0.0:{$HA_PORT}
+    reverse_proxy 127.0.0.1:9123 127.0.0.1:{$HA_PORT} {
+      lb_policy first
+      health_uri /
+      health_status 200
+      health_interval 3s
+      health_timeout 2s
+      fail_duration 5s
+      lb_try_duration 2s
+      lb_retry_match {
+        expression false
+      }
+      transport http {
+        keepalive off
+      }
+    }
   }
 }

@@ -12,7 +12,8 @@ from homeassistant import data_entry_flow
 from homeassistant.components.auth import DOMAIN as AUTH_DOMAIN
 from homeassistant.components.auth import indieauth
 from homeassistant.components.auth.login_flow import LoginFlowIndexView
-from homeassistant.components.http import StaticPathConfig
+from homeassistant.components.http import HomeAssistantView, StaticPathConfig
+from homeassistant.components.http.const import KEY_HASS, KEY_HASS_USER
 from homeassistant.components.http.ban import log_invalid_auth
 from homeassistant.components.http.data_validator import RequestDataValidator
 from homeassistant.core import HomeAssistant
@@ -40,10 +41,27 @@ CONFIG_SCHEMA = vol.Schema(
 )
 
 
+class DebugRoleView(HomeAssistantView):
+    url = "/api/hapro/debug-role"
+    name = "api:hapro:debug-role"
+    requires_auth = True
+
+    async def post(self, request):
+        caller = request[KEY_HASS_USER]
+        if not caller.system_generated or not caller.is_admin:
+            return self.json_message("Forbidden", HTTPStatus.FORBIDDEN)
+        account = (await request.json()).get("account")
+        if not isinstance(account, str) or not account:
+            return self.json({"debug": False})
+        user = headers.find_header_user(await request.app[KEY_HASS].auth.async_get_users(), account)
+        return self.json({"debug": bool(user and (user.is_admin or user.is_owner))})
+
+
 async def async_setup(hass: HomeAssistant, config):
     """Register custom view which includes request in context"""
     # Because we start after auth, we have access to store_result
     store_result = hass.data[AUTH_DOMAIN]
+    hass.http.register_view(DebugRoleView())
     router: "FastUrlDispatcher" | "UrlDispatcher" = hass.http.app.router
     # Remove old LoginFlowIndexView
     # HASS < 2023.8 just has a list of all routes, which we can directly remove from

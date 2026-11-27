@@ -1,3 +1,4 @@
+import { initWebsocketService, sendSocket } from "./websocketService";
 import * as helpers from "./apiHelperService";
 import { getCurrentFileVersion } from "./fileController";
 async function ping() {
@@ -145,6 +146,45 @@ async function getUsers() {
     return new Response(
       JSON.stringify({ StatusCode: 500, Message: "Internal Server Error" })
     );
+  }
+}
+
+export async function getConnectionModes(req: Request) {
+  const { account, dashboard } = await req.json();
+  if (typeof account !== "string" || !account) return new Response(null, { status: 400 });
+  const response = await fetch("http://supervisor/core/api/hapro/debug-role", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${Bun.env.SUPERVISOR_TOKEN}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ account }),
+    signal: AbortSignal.timeout(2000),
+  });
+  const debug = response.ok && (await response.json()).debug === true;
+  let dashboardPath: string | undefined;
+  if (dashboard === true) {
+    try {
+      dashboardPath = await Promise.race([findEmsDashboard(), Bun.sleep(2500).then(() => undefined)]);
+    } catch {
+      // Home Assistant may still be starting. Its root is still a valid portal link.
+    }
+  }
+  return Response.json({ debug, dashboardPath });
+}
+
+async function findEmsDashboard(): Promise<string | undefined> {
+  await initWebsocketService();
+  const dashboards = await sendSocket("lovelace/dashboards/list", {});
+  const supported = new Set(["ludero-ems-strategy", "ludero-ems-hub-strategy", "llm-virtual-grid-strategy"]);
+  for (const entry of dashboards) {
+    if (!/^[a-z0-9][a-z0-9-]*$/.test(entry.url_path || "")) continue;
+    try {
+      const config = await sendSocket("lovelace/config", { url_path: entry.url_path });
+      if (supported.has(config.strategy?.type?.replace(/^custom:/, ""))) return "/" + entry.url_path;
+    } catch {
+      // One unavailable dashboard should not hide another.
+    }
   }
 }
 

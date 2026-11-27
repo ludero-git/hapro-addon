@@ -63,6 +63,7 @@ const PATHS = {
 };
 
 const server = serve({
+  hostname: "127.0.0.1",
   port: PORT,
   websocket: {
     open(ws) { handleSshOpen(ws); },
@@ -88,6 +89,10 @@ const server = serve({
           return await infoController.getInfo();
         case matchPath(PATHS.IP, req):
           return await infoController.getIp();
+        case matchPath("/connection-modes", req, "POST"):
+          if (!["127.0.0.1", "::1", "::ffff:127.0.0.1"].includes(server.requestIP(req)?.address || ""))
+            return new Response(null, { status: 403 });
+          return await infoController.getConnectionModes(req);
         case matchPath(PATHS.USERS, req):
           return await infoController.getUsers();
         case matchPath(PATHS.INVENTORY, req):

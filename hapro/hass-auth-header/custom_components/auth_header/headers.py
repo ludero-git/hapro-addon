@@ -20,6 +20,18 @@ CONF_ALLOW_BYPASS_LOGIN = "allow_bypass_login"
 _LOGGER = logging.getLogger(__name__)
 
 
+def find_header_user(users, remote_user):
+    """Resolve the same active Home Assistant user for login and Debug access."""
+    for user in users:
+        if user.system_generated or not user.is_active:
+            continue
+        if user.name == remote_user or any(
+            credential.data.get("username") == remote_user for credential in user.credentials
+        ):
+            return user
+    return None
+
+
 @AUTH_PROVIDERS.register("header")
 class HeaderAuthProvider(AuthProvider):
     """Header Authentication Provider.
@@ -144,17 +156,8 @@ class HeaderLoginFlow(LoginFlow):
                 _LOGGER.debug("Invalid auth: %s", exc)
                 return self.async_abort(reason="not_allowed")
             
-            for user in self._available_users:
-                _LOGGER.debug("Checking user: %s", user.name)
-                for cred in user.credentials:
-                    if "username" in cred.data:
-                        _LOGGER.debug("Found username in credentials: %s", cred.data["username"])
-                        if cred.data["username"] == self._remote_user:
-                            _LOGGER.debug("Username match found, finishing login flow")
-                            return await self.async_finish({"user": user.id})
-                if user.name == self._remote_user:
-                    _LOGGER.debug("User name match found, finishing login flow")
-                    return await self.async_finish({"user": user.id})
+            if self._remote_user and (user := find_header_user(self._available_users, self._remote_user)):
+                return await self.async_finish({"user": user.id})
 
             _LOGGER.debug("No matching user found")
             return self.async_abort(reason="not_allowed")

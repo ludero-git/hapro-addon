@@ -35,6 +35,7 @@ COPY --from=caddy /usr/bin/caddy /usr/bin/caddy
 COPY --from=docker-cli /usr/local/bin/docker /usr/bin/docker
 RUN curl -L -s -f "https://github.com/home-assistant/cli/releases/latest/download/ha_${BUILD_ARCH}" -o /usr/bin/ha && chmod +x /usr/bin/ha
 COPY rootfs /
+RUN chmod +x /etc/s6-overlay/s6-rc.d/*/run /etc/s6-overlay/s6-rc.d/*/finish
 
 WORKDIR /usr/src
 RUN bun install
